@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ai",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-15",
+  "kv_namespaces": [
+    {
+      "binding": "USER_SESSIONS_KV",
+      "id": "USER_SESSIONS_KV"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
+  "ai_search": [
+    {
+      "binding": "SITE_SEARCH",
+      "instance_name": "superjeffc-search"
+    }
+  ]
+}
