@@ -22,6 +22,25 @@ interface SECCompanyTicker {
 
 // ─── HELPER FUNCTIONS FOR EARNINGS SYNTHESIZER ────────────────────────────────
 
+let lastRequestTime = 0;
+
+const SEC_HEADERS = {
+  "User-Agent": "MultiTickerScreener/1.0 (jeff@superjeffc.com)",
+  "Accept-Encoding": "gzip, deflate"
+};
+
+async function rateLimitedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const minInterval = 110; // at least 110ms between requests (approx 9 reqs/sec)
+  const now = Date.now();
+  const timeSinceLast = now - lastRequestTime;
+  if (timeSinceLast < minInterval) {
+    const waitTime = minInterval - timeSinceLast;
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+  }
+  lastRequestTime = Date.now();
+  return fetch(url, options);
+}
+
 /**
  * Translates ticker to a 10-digit zero-padded CIK using a local cache check
  * and fallback to the SEC company_tickers dictionary.
@@ -46,10 +65,8 @@ async function getCikForTicker(ticker: string, env: Env): Promise<string> {
 
   // 2. Fetch from SEC static mapping list
   const secUrl = "https://www.sec.gov/files/company_tickers.json";
-  const res = await fetch(secUrl, {
-    headers: {
-      "User-Agent": "MultiTickerScreener/1.0 (jeff@superjeffc.com)"
-    }
+  const res = await rateLimitedFetch(secUrl, {
+    headers: SEC_HEADERS
   });
 
   if (!res.ok) {
@@ -87,28 +104,17 @@ async function getCikForTicker(ticker: string, env: Env): Promise<string> {
  * Fetches the lightweight submissions index for a given CIK and extracts
  * the unique Accession Number and filing date for the most recent 10-Q or 10-K.
  */
-async function getRecentFilingInfo(cik: string): Promise<{ accessionNumber: string; filingDate: string }> {
+async function getRecentFilingInfo(cik: string): Promise<{ accessionNumber: string; filingDate: string; submissionsData: any }> {
   const url = `https://data.sec.gov/submissions/CIK${cik}.json`;
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "MultiTickerScreener/1.0 (jeff@superjeffc.com)"
-    }
+  const res = await rateLimitedFetch(url, {
+    headers: SEC_HEADERS
   });
 
   if (!res.ok) {
     throw new Error(`Failed to fetch SEC submissions for CIK ${cik}: ${res.statusText}`);
   }
 
-  const data = await res.json() as {
-    filings?: {
-      recent?: {
-        form?: string[];
-        accessionNumber?: string[];
-        filingDate?: string[];
-      };
-    };
-  };
-
+  const data = await res.json() as any;
   const recent = data.filings?.recent;
   if (!recent || !recent.form || !recent.accessionNumber || !recent.filingDate) {
     throw new Error(`Filing index not available for CIK ${cik}`);
@@ -120,7 +126,8 @@ async function getRecentFilingInfo(cik: string): Promise<{ accessionNumber: stri
     if (formType === "10-Q" || formType === "10-K") {
       return {
         accessionNumber: recent.accessionNumber[i],
-        filingDate: recent.filingDate[i]
+        filingDate: recent.filingDate[i],
+        submissionsData: data
       };
     }
   }
@@ -135,10 +142,8 @@ async function getRecentFilingInfo(cik: string): Promise<{ accessionNumber: stri
 async function getFactsForAccession(cik: string, accessionNumber: string): Promise<string> {
   try {
     const url = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent": "MultiTickerScreener/1.0 (jeff@superjeffc.com)"
-      }
+    const res = await rateLimitedFetch(url, {
+      headers: SEC_HEADERS
     });
 
     if (!res.ok) {
@@ -202,66 +207,100 @@ async function getFactsForAccession(cik: string, accessionNumber: string): Promi
 }
 
 /**
- * Fetches the verbal call transcript from FMP API and slices it to capture the Q&A segment.
+ * Clean HTML helper to strip HTML tags and normalize whitespace.
  */
-async function fetchEarningCallTranscript(ticker: string, env: Env): Promise<string> {
-  const fmpApiKey = env.FMP_API_KEY;
-  if (!fmpApiKey || fmpApiKey === "your_fmp_api_key_here") {
-    return "FMP_API_KEY is not configured on the Worker.";
-  }
+function cleanHtml(html: string): string {
+  let text = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
+  text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "");
+  text = text.replace(/<[^>]+>/g, " ");
+  text = text.replace(/\s+/g, " ");
+  return text.trim();
+}
 
-  const url = `https://financialmodelingprep.com/api/v3/earning_call_transcript/${ticker.toUpperCase()}?limit=1&apikey=${fmpApiKey}`;
+/**
+ * Fetches the earnings details from the most recent relevant 8-K filing on SEC EDGAR.
+ */
+async function fetchEarningCallTranscript(ticker: string, cik: string, submissionsData: any, env: Env): Promise<string> {
   try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      return `Failed to fetch transcript from FMP: ${res.statusText}`;
+    const recent = submissionsData?.filings?.recent;
+    if (!recent || !recent.form || !recent.accessionNumber || !recent.primaryDocument) {
+      return `No recent filings metadata available to look up 8-K for ${ticker}.`;
     }
 
-    const data = await res.json() as Array<{ symbol: string; date: string; content: string }>;
-    if (!Array.isArray(data) || data.length === 0 || !data[0].content) {
-      return `No recent earnings call transcript available for ticker ${ticker.toUpperCase()}`;
-    }
-
-    const content = data[0].content;
-
-    // Search for the beginning of the Q&A section
-    const qaKeywords = [
-      "question-and-answer",
-      "question and answer",
-      "q&a",
-      "questions and answers",
-      "operator:"
-    ];
-
-    let qaIndex = -1;
-    const lowerContent = content.toLowerCase();
-
-    for (const kw of qaKeywords) {
-      const idx = lowerContent.indexOf(kw);
-      if (idx !== -1) {
-        if (qaIndex === -1 || idx < qaIndex) {
-          qaIndex = idx;
+    // 1. Filter Logic: look for recent 8-K filings with Item 2.02, 7.01, or 8.01
+    let recent8K: { accessionNumber: string; filingDate: string; primaryDocument: string } | null = null;
+    for (let i = 0; i < recent.form.length; i++) {
+      if (recent.form[i] === "8-K") {
+        const items = recent.items?.[i] || "";
+        if (items.includes("2.02") || items.includes("7.01") || items.includes("8.01")) {
+          recent8K = {
+            accessionNumber: recent.accessionNumber[i],
+            filingDate: recent.filingDate[i],
+            primaryDocument: recent.primaryDocument[i]
+          };
+          break; // Grab the most recent matching 8-K
         }
       }
     }
 
-    let sliceStart = 0;
-    if (qaIndex !== -1) {
-      sliceStart = Math.max(0, qaIndex - 500); // Grab transition context
-    } else {
-      sliceStart = Math.max(0, content.length - 12000); // Default to last 12,000 characters
+    if (!recent8K) {
+      return `No recent 8-K filing found for ${ticker} containing Item 2.02, 7.01, or 8.01.`;
     }
 
-    let sliced = content.substring(sliceStart, sliceStart + 12000);
-    
-    if (sliceStart > 0) {
-      sliced = "[... Transcript Sliced for Q&A Context ...]\n" + sliced;
+    // 2. Format Accession and CIK
+    const accessionNoDashes = recent8K.accessionNumber.replace(/-/g, "");
+    const cikNumeric = parseInt(cik, 10).toString();
+
+    // 3. Query directory index.json to find attached exhibits (like Exhibit 99.1)
+    const indexUrl = `https://www.sec.gov/Archives/edgar/data/${cikNumeric}/${accessionNoDashes}/index.json`;
+    const indexRes = await rateLimitedFetch(indexUrl, { headers: SEC_HEADERS });
+
+    let documentName = recent8K.primaryDocument;
+
+    if (indexRes.ok) {
+      const indexData = await indexRes.json() as {
+        directory?: {
+          item?: Array<{ name: string; type: string; size?: string }>;
+        };
+      };
+      const itemsList = indexData.directory?.item || [];
+      // Look for Exhibit 99.1 or other Exhibit 99 files
+      const exhibitItem = itemsList.find(item => 
+        item.name && 
+        /ex[-_]?99/i.test(item.name) && 
+        item.type === "file"
+      );
+      if (exhibitItem) {
+        documentName = exhibitItem.name;
+      }
     }
 
-    return sliced;
+    // 4. Retrieve the actual document content
+    const docUrl = `https://www.sec.gov/Archives/edgar/data/${cikNumeric}/${accessionNoDashes}/${documentName}`;
+    const docRes = await rateLimitedFetch(docUrl, { headers: SEC_HEADERS });
+
+    if (!docRes.ok) {
+      // Fallback to primary document if exhibit fetch failed
+      if (documentName !== recent8K.primaryDocument) {
+        const fallbackUrl = `https://www.sec.gov/Archives/edgar/data/${cikNumeric}/${accessionNoDashes}/${recent8K.primaryDocument}`;
+        const fallbackRes = await rateLimitedFetch(fallbackUrl, { headers: SEC_HEADERS });
+        if (fallbackRes.ok) {
+          const rawHtml = await fallbackRes.text();
+          const cleanedText = cleanHtml(rawHtml);
+          return cleanedText.substring(0, 16000);
+        }
+      }
+      return `Failed to retrieve 8-K document from SEC: ${docRes.statusText}`;
+    }
+
+    const rawContent = await docRes.text();
+    const cleanText = cleanHtml(rawContent);
+
+    return cleanText.substring(0, 16000);
+
   } catch (err: any) {
-    console.error(`Error fetching transcript for ${ticker}:`, err);
-    return `Error retrieving transcript: ${err.message}`;
+    console.error(`Error fetching SEC 8-K for ${ticker}:`, err);
+    return `Error retrieving SEC 8-K content: ${err.message}`;
   }
 }
 
@@ -288,7 +327,7 @@ async function synthesizeSingleTicker(ticker: string, env: Env): Promise<{
     const cik = await getCikForTicker(cleanTicker, env);
 
     // 2. Fetch recent filing headers
-    const { accessionNumber, filingDate } = await getRecentFilingInfo(cik);
+    const { accessionNumber, filingDate, submissionsData } = await getRecentFilingInfo(cik);
 
     // 3. Cache Check
     const cachedSummary = await env.DB.prepare(
@@ -311,11 +350,11 @@ async function synthesizeSingleTicker(ticker: string, env: Env): Promise<{
     // 4. Ingestion & Analysis Pipeline (Cache Miss)
     const [factsText, transcriptText] = await Promise.all([
       getFactsForAccession(cik, accessionNumber),
-      fetchEarningCallTranscript(cleanTicker, env)
+      fetchEarningCallTranscript(cleanTicker, cik, submissionsData, env)
     ]);
 
-    const systemPrompt = "You are a financial analyst. Your role is to cross-examine SEC numeric filings against transcript text to synthesize an earnings summary.";
-    const userPrompt = `Analyze the following official reported metrics and earning call transcript for ticker ${cleanTicker}.
+    const systemPrompt = "You are a financial analyst. Your role is to cross-examine SEC numeric filings against 8-K document text to synthesize an earnings summary.";
+    const userPrompt = `Analyze the following official reported metrics and SEC 8-K document for ticker ${cleanTicker}.
 
 SEC ACCESSION: ${accessionNumber}
 FILING DATE: ${filingDate}
@@ -323,12 +362,12 @@ FILING DATE: ${filingDate}
 Extracted SEC Metrics:
 ${factsText}
 
-Earning Call Transcript Snippet:
+SEC 8-K Document Text:
 ${transcriptText}
 
 Please extract:
 1. Exact reported metrics (Revenue & EPS growth rates).
-2. Analyst friction or defensive management language identified strictly in the Q&A segment of the transcript.
+2. Analyst friction or defensive management language identified in the document.
 
 Format your response in neat Markdown. Keep your analysis concise and high-signal.`;
 
@@ -1079,7 +1118,7 @@ function getHTMLFrontend(): string {
 
     '<div id="synth-loading" class="flex-1 flex flex-col items-center justify-center text-gray-400 hidden">' +
       '<div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-2"></div>' +
-      '<p class="text-sm font-medium" id="synth-loading-text">Fetching SEC and FMP APIs...</p>' +
+      '<p class="text-sm font-medium" id="synth-loading-text">Fetching SEC EDGAR database...</p>' +
     '</div>' +
 
     '<div id="synth-placeholder" class="flex-1 flex flex-col items-center justify-center text-gray-500 text-sm border-2 border-dashed border-gray-800 rounded-xl p-8">' +
