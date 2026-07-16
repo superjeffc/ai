@@ -21,10 +21,41 @@ export function getHTMLFrontend(): string {
     .prose table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; margin-bottom: 0.75rem; border: 1px solid #1f2937; }
     .prose th { border-bottom: 2px solid #374151; background-color: #1f2937; padding: 0.5rem; text-align: left; font-weight: bold; color: #fff; font-size: 0.85rem; }
     .prose td { border-bottom: 1px solid #1f2937; padding: 0.5rem; font-size: 0.85rem; color: rgba(255,255,255,0.8); }
+
+    /* Custom layout styling to guarantee input/button responsiveness and prevent clipping */
+    .search-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      width: 100%;
+    }
+    .search-input {
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+    .search-button {
+      width: 100%;
+      box-sizing: border-box;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    @media (min-width: 640px) {
+      .search-container {
+        flex-direction: row;
+      }
+      .search-input {
+        flex: 1;
+        width: 0;
+      }
+      .search-button {
+        width: auto;
+      }
+    }
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="flex flex-col h-[100dvh] max-w-4xl mx-auto p-3 sm:p-4">
+<body class="flex flex-col h-[100dvh] w-full max-w-4xl mx-auto p-3 sm:p-4">
 
   <header class="flex justify-between items-center py-2 sm:py-4 border-b border-gray-800 shrink-0">
     <div class="flex items-center gap-2">
@@ -34,11 +65,11 @@ export function getHTMLFrontend(): string {
   </header>
 
   <div id="synth-container" class="flex-1 flex flex-col overflow-hidden mt-4">
-    <div class="bg-gray-900 border border-gray-800 p-4 rounded-xl mb-4 shrink-0">
+    <div class="w-full bg-gray-900 border border-gray-800 p-4 rounded-xl mb-4 shrink-0">
       <h2 class="text-sm font-semibold text-gray-300 mb-2">Earnings Synthesizer (SEC Facts vs. Transcript/8-K Filings)</h2>
-      <div class="flex gap-2">
-        <input type="text" id="synth-tickers" placeholder="e.g. AAPL, MSFT, NVDA, AMD" class="flex-1 bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-white placeholder-gray-500 outline-none focus:border-gray-700 text-sm">
-        <button onclick="runSynthesis()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition cursor-pointer flex items-center gap-1.5 shrink-0" id="synth-btn">
+      <div class="search-container">
+        <input type="text" id="synth-tickers" placeholder="e.g. AAPL, MSFT, NVDA, AMD" class="search-input bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-white placeholder-gray-500 outline-none focus:border-gray-700 text-sm">
+        <button onclick="runSynthesis()" class="search-button bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition cursor-pointer flex items-center gap-1.5" id="synth-btn">
           <span>Synthesize</span>
         </button>
       </div>
