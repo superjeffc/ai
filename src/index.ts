@@ -48,7 +48,7 @@ async function getCikForTicker(ticker: string, env: Env): Promise<string> {
   const secUrl = "https://www.sec.gov/files/company_tickers.json";
   const res = await fetch(secUrl, {
     headers: {
-      "User-Agent": "MultiTickerScreener/1.0 (admin@myproject.com)"
+      "User-Agent": "MultiTickerScreener/1.0 (jeff@superjeffc.com)"
     }
   });
 
@@ -91,7 +91,7 @@ async function getRecentFilingInfo(cik: string): Promise<{ accessionNumber: stri
   const url = `https://data.sec.gov/submissions/CIK${cik}.json`;
   const res = await fetch(url, {
     headers: {
-      "User-Agent": "MultiTickerScreener/1.0 (admin@myproject.com)"
+      "User-Agent": "MultiTickerScreener/1.0 (jeff@superjeffc.com)"
     }
   });
 
@@ -137,7 +137,7 @@ async function getFactsForAccession(cik: string, accessionNumber: string): Promi
     const url = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
     const res = await fetch(url, {
       headers: {
-        "User-Agent": "MultiTickerScreener/1.0 (admin@myproject.com)"
+        "User-Agent": "MultiTickerScreener/1.0 (jeff@superjeffc.com)"
       }
     });
 
