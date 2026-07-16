@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "ai",
-  "main": "src/index.js",
+  "main": "src/index.ts",
   "compatibility_date": "2026-07-15",
   "kv_namespaces": [
     {
@@ -16,6 +16,13 @@
     {
       "binding": "SITE_SEARCH",
       "instance_name": "superjeffc-search"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "earnings_db",
+      "database_id": "b968a356-91ff-4899-8cf0-21a48c5a2c4e"
     }
   ]
 }
