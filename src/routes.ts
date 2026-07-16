@@ -484,8 +484,53 @@ export async function handleSynthesizeRoute(request: Request, env: Env, url: URL
     const tickerPromises = tickers.map(ticker => synthesizeSingleTicker(ticker, env));
     const results = await Promise.all(tickerPromises);
 
-    // Execute Reduce Phase
-    const synthesis = await runComparativeReduce(results, env);
+    // Execute Reduce Phase (with caching)
+    const validResults = results.filter(r => r.summary && !r.error);
+    let synthesis = "";
+
+    if (validResults.length > 0) {
+      // Sort to ensure order-independence (e.g. AAPL,MSFT is same as MSFT,AAPL)
+      const sortedResults = [...validResults].sort((a, b) => a.ticker.localeCompare(b.ticker));
+      const tickersKey = "SYNTHESIS:" + sortedResults.map(r => r.ticker).join(",");
+      const accessionsKey = sortedResults.map(r => r.accessionNumber || "").join(",");
+
+      // Check D1 cache for this exact comparative synthesis
+      try {
+        const cachedSynth = await env.DB.prepare(
+          "SELECT summary FROM earnings_cache WHERE ticker = ?1 AND accession_number = ?2"
+        )
+          .bind(tickersKey, accessionsKey)
+          .first<{ summary: string }>();
+
+        if (cachedSynth && cachedSynth.summary) {
+          synthesis = cachedSynth.summary;
+        }
+      } catch (cacheErr) {
+        console.error("Failed to query synthesis cache:", cacheErr);
+      }
+
+      if (!synthesis) {
+        // Cache miss: generate live using AI model
+        synthesis = await runComparativeReduce(results, env);
+
+        // Save generated synthesis to D1 cache
+        try {
+          const maxFilingDate = sortedResults.reduce((max, r) => {
+            return (r.filingDate && r.filingDate > max) ? r.filingDate : max;
+          }, "1970-01-01");
+
+          await env.DB.prepare(
+            "INSERT OR REPLACE INTO earnings_cache (ticker, accession_number, filing_date, summary) VALUES (?1, ?2, ?3, ?4)"
+          )
+            .bind(tickersKey, accessionsKey, maxFilingDate, synthesis)
+            .run();
+        } catch (saveErr) {
+          console.error("Failed to save synthesis to cache:", saveErr);
+        }
+      }
+    } else {
+      synthesis = "No valid ticker summaries were generated to perform comparative synthesis.";
+    }
 
     const responsePayload = {
       success: true,
