@@ -332,7 +332,7 @@ Please extract:
 
 Format your response in neat Markdown. Keep your analysis concise and high-signal.`;
 
-    const modelName = "@cf/meta/llama-3-8b-instruct";
+    const modelName = "@cf/meta/llama-3.1-8b-instruct-fp8";
     const aiResult = await env.AI.run(modelName, {
       messages: [
         { role: "system", content: systemPrompt },
@@ -411,7 +411,7 @@ Please synthesize these findings and generate:
 
 Respond strictly in professional Markdown format. Use clear headings for each section.`;
 
-  const modelName = "@cf/meta/llama-3-8b-instruct";
+  const modelName = "@cf/meta/llama-3.1-8b-instruct-fp8";
   const aiResult = await env.AI.run(modelName, {
     messages: [
       { role: "system", content: systemPrompt },
