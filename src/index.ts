@@ -35,22 +35,22 @@ export default {
       return handleFrontendRoute(request, env, userId);
     }
 
-    // ROUTE 1.5: Fetches conversation history
+    // ROUTE 2: Fetches conversation history
     if (url.pathname === "/api/history" && request.method === "GET") {
       return handleHistoryRoute(request, env, userHistoryKey, userId);
     }
 
-    // ROUTE 2: Processes incoming chat/image requests
+    // ROUTE 3: Processes incoming chat/image requests
     if (url.pathname === "/api/chat" && request.method === "POST") {
       return handleChatRoute(request, env, ctx, userHistoryKey, userId);
     }
 
-    // ROUTE 3: OpenAI-Compatible completions
+    // ROUTE 4: OpenAI-Compatible completions
     if (url.pathname === "/v1/chat/completions" && request.method === "POST") {
       return handleCompletionsRoute(request, env);
     }
 
-    // NEW ROUTE 4: GET /api/synthesize?tickers=AAPL,MSFT,NVDA
+    // ROUTE 5: GET /api/synthesize?tickers=AAPL,MSFT,NVDA
     if (url.pathname === "/api/synthesize" && request.method === "GET") {
       return handleSynthesizeRoute(request, env, url);
     }

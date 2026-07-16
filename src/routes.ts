@@ -17,7 +17,7 @@ export async function handleFrontendRoute(request: Request, env: Env, userId: st
 }
 
 /**
- * ROUTE 1.5: Fetches conversation history
+ * ROUTE 2: Fetches conversation history
  */
 export async function handleHistoryRoute(request: Request, env: Env, userHistoryKey: string, userId: string): Promise<Response> {
   try {
@@ -42,7 +42,7 @@ export async function handleHistoryRoute(request: Request, env: Env, userHistory
 }
 
 /**
- * ROUTE 2: Processes incoming chat/image requests
+ * ROUTE 3: Processes incoming chat/image requests
  */
 export async function handleChatRoute(request: Request, env: Env, ctx: ExecutionContext, userHistoryKey: string, userId: string): Promise<Response> {
   try {
@@ -323,7 +323,7 @@ export async function handleChatRoute(request: Request, env: Env, ctx: Execution
 }
 
 /**
- * ROUTE 3: OpenAI-Compatible completions
+ * ROUTE 4: OpenAI-Compatible completions
  */
 export async function handleCompletionsRoute(request: Request, env: Env): Promise<Response> {
   try {
@@ -454,7 +454,7 @@ export async function handleCompletionsRoute(request: Request, env: Env): Promis
 }
 
 /**
- * ROUTE 4: Comparative analysis synthesizer
+ * ROUTE 5: Comparative analysis synthesizer
  */
 export async function handleSynthesizeRoute(request: Request, env: Env, url: URL): Promise<Response> {
   try {
