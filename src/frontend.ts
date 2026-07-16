@@ -33,6 +33,7 @@ export function getHTMLFrontend(): string {
       width: 100%;
       min-width: 0;
       box-sizing: border-box;
+      text-transform: uppercase;
     }
     .search-button {
       width: 100%;
@@ -68,7 +69,7 @@ export function getHTMLFrontend(): string {
     <div class="w-full bg-gray-900 border border-gray-800 p-4 rounded-xl mb-4 shrink-0">
       <h2 class="text-sm font-semibold text-gray-300 mb-2">Earnings Synthesizer (SEC Facts vs. Transcript/8-K Filings)</h2>
       <div class="search-container">
-        <input type="text" id="synth-tickers" placeholder="e.g. AAPL, MSFT, NVDA, AMD" class="search-input bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-white placeholder-gray-500 outline-none focus:border-gray-700 text-sm">
+        <input type="text" id="synth-tickers" placeholder="e.g. AAPL, MSFT, NVDA, AMD" value="AAPL, MSFT, NVDA" class="search-input bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-white placeholder-gray-500 outline-none focus:border-gray-700 text-sm">
         <button onclick="runSynthesis()" class="search-button bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition cursor-pointer flex items-center gap-1.5" id="synth-btn">
           <span>Synthesize</span>
         </button>
@@ -105,7 +106,13 @@ export function getHTMLFrontend(): string {
     const synthTickersInput = document.getElementById('synth-tickers');
     setTimeout(function() {
       synthTickersInput.focus({ preventScroll: true });
+      const len = synthTickersInput.value.length;
+      synthTickersInput.setSelectionRange(len, len);
     }, 100);
+
+    synthTickersInput.addEventListener('input', function(e) {
+      synthTickersInput.value = synthTickersInput.value.toUpperCase();
+    });
 
     synthTickersInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') {
@@ -129,10 +136,10 @@ export function getHTMLFrontend(): string {
       results.classList.add('hidden');
       loading.classList.remove('hidden');
 
-      const tickersList = tickersVal.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
+      const tickersList = tickersVal.split(',').map(function(t) { return t.trim().toUpperCase(); }).filter(Boolean);
       
       try {
-        loadingText.innerText = "Ingesting " + tickersList.join(', ') + "... (First compile takes ~10-15 seconds)";
+        loadingText.innerText = "Ingesting " + tickersList.join(', ') + "...";
         
         const res = await fetch("/api/synthesize?tickers=" + encodeURIComponent(tickersList.join(',')));
         const data = await res.json();
