@@ -306,10 +306,36 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
     // 1. CIK translation
     const cik = await getCikForTicker(cleanTicker, env);
 
-    // 2. Fetch recent filing headers
+    // 2. Fast cache check: if a report was filed within the last 80 days, skip SEC API lookup
+    const recentCached = await env.DB.prepare(
+      "SELECT accession_number, filing_date, summary FROM earnings_cache WHERE ticker = ?1 ORDER BY filing_date DESC LIMIT 1"
+    )
+      .bind(cleanTicker)
+      .first<{ accession_number: string; filing_date: string; summary: string }>();
+
+    if (recentCached && recentCached.filing_date) {
+      const filingDateMs = new Date(recentCached.filing_date).getTime();
+      if (!isNaN(filingDateMs)) {
+        const ageInDays = (Date.now() - filingDateMs) / (1000 * 60 * 60 * 24);
+        // If the cached filing is less than 80 days old, it is impossible for a new 
+        // quarterly report to be released yet. We can bypass the SEC lookup entirely.
+        if (ageInDays < 80) {
+          return {
+            ticker: cleanTicker,
+            cik,
+            accessionNumber: recentCached.accession_number,
+            filingDate: recentCached.filing_date,
+            summary: recentCached.summary,
+            cached: true
+          };
+        }
+      }
+    }
+
+    // 3. Fallback: Fetch recent filing info from SEC submissions index
     const { accessionNumber, filingDate, submissionsData } = await getRecentFilingInfo(cik);
 
-    // 3. Cache Check
+    // 4. Precise Cache Check: check if the latest accession number matches the cache
     const cachedSummary = await env.DB.prepare(
       "SELECT summary FROM earnings_cache WHERE ticker = ?1 AND accession_number = ?2"
     )
