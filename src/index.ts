@@ -1,4 +1,5 @@
 import { Env } from "./types";
+import { synthesizeSingleTicker } from "./financials";
 import {
   handleFrontendRoute,
   handleHistoryRoute,
@@ -56,5 +57,18 @@ export default {
     }
 
     return new Response("Not Found", { status: 404 });
+  },
+
+  async queue(batch: any, env: Env): Promise<void> {
+    for (const message of batch.messages) {
+      const { ticker } = message.body;
+      try {
+        console.log(`Queue Ingestion: Processing ${ticker}`);
+        await synthesizeSingleTicker(ticker, env);
+      } catch (err: any) {
+        console.error(`Queue consumer failed for ${ticker}:`, err.message);
+      }
+      message.ack();
+    }
   }
 };

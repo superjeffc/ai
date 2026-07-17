@@ -193,67 +193,91 @@ export function getHTMLFrontend(): string {
       loading.classList.remove('hidden');
 
       const tickersList = tickersVal.split(',').map(function(t) { return t.trim().toUpperCase(); }).filter(Boolean);
-      
-      try {
-        loadingText.innerText = "Ingesting " + tickersList.join(', ') + "...";
-        
-        const res = await fetch("/api/synthesize?tickers=" + encodeURIComponent(tickersList.join(',')));
-        const data = await res.json();
-        
-        if (!data.success) {
-          throw new Error(data.error || "Synthesis failed");
-        }
+      const pollInterval = 3000;
 
-        const cardsContainer = document.getElementById('synth-ticker-cards');
-        cardsContainer.innerHTML = '';
-        
-        const summaries = data.data.summaries;
-        for (const ticker of Object.keys(summaries)) {
-          const info = summaries[ticker];
-          const card = document.createElement('div');
-          card.className = "bg-gray-900 border border-gray-800 p-4 rounded-xl flex flex-col";
+      async function poll() {
+        try {
+          loadingText.innerText = "Ingesting " + tickersList.join(', ') + "...";
           
-          if (info.error) {
-            card.innerHTML = 
-              '<div class="flex justify-between items-center border-b border-gray-800 pb-2 mb-2">' +
-                '<h4 class="font-bold text-white text-base">' + ticker + '</h4>' +
-                '<span class="px-2 py-0.5 rounded text-xs bg-red-950/40 text-red-400 border border-red-900/50">Error</span>' +
-              '</div>' +
-              '<p class="text-sm text-red-400 flex-1">' + info.error + '</p>';
-          } else {
-            const cacheBadge = info.cached 
-              ? '<span class="px-2 py-0.5 rounded text-xs bg-green-950/40 text-green-400 border border-green-900/50">Cached</span>'
-              : '<span class="px-2 py-0.5 rounded text-xs bg-amber-950/40 text-amber-400 border border-amber-900/50">Upstream</span>';
-            
-            card.innerHTML = 
-              '<div class="flex justify-between items-center border-b border-gray-800 pb-2 mb-2">' +
-                '<h4 class="font-bold text-white text-base">' + ticker + '</h4>' +
-                '<div class="flex gap-2 items-center">' +
-                  cacheBadge +
-                '</div>' +
-              '</div>' +
-              '<div class="text-xs text-gray-400 mb-3 space-y-0.5">' +
-                '<div>Filing Date: <span class="text-gray-200 font-medium">' + (info.filingDate || 'N/A') + '</span></div>' +
-                '<div>Accession: <span class="text-gray-200 font-medium font-mono">' + (info.accessionNumber || 'N/A') + '</span></div>' +
-              '</div>' +
-              '<div class="text-sm text-gray-300 leading-relaxed flex-1 prose max-w-none">' + marked.parse(info.summary || '') + '</div>';
+          const res = await fetch("/api/synthesize?tickers=" + encodeURIComponent(tickersList.join(',')));
+          const data = await res.json();
+          
+          if (!data.success) {
+            throw new Error(data.error || "Synthesis failed");
           }
-          cardsContainer.appendChild(card);
+
+          const cardsContainer = document.getElementById('synth-ticker-cards');
+          cardsContainer.innerHTML = '';
+          
+          const summaries = data.data.summaries;
+          for (const ticker of Object.keys(summaries)) {
+            const info = summaries[ticker];
+            const card = document.createElement('div');
+            card.className = "bg-gray-900 border border-gray-800 p-4 rounded-xl flex flex-col";
+            
+            if (info.error) {
+              if (info.error === "Ingesting...") {
+                card.innerHTML = 
+                  '<div class="flex justify-between items-center border-b border-gray-800 pb-2 mb-2">' +
+                    '<h4 class="font-bold text-white text-base">' + ticker + '</h4>' +
+                    '<span class="px-2 py-0.5 rounded text-xs bg-blue-950/40 text-blue-400 border border-blue-900/50 animate-pulse">Ingesting...</span>' +
+                  '</div>' +
+                  '<p class="text-sm text-gray-400 flex-1">Ticker is being processed in a rate-limited background queue to comply with SEC requirements.</p>';
+              } else {
+                card.innerHTML = 
+                  '<div class="flex justify-between items-center border-b border-gray-800 pb-2 mb-2">' +
+                    '<h4 class="font-bold text-white text-base">' + ticker + '</h4>' +
+                    '<span class="px-2 py-0.5 rounded text-xs bg-red-950/40 text-red-400 border border-red-900/50">Error</span>' +
+                  '</div>' +
+                  '<p class="text-sm text-red-400 flex-1">' + info.error + '</p>';
+              }
+            } else {
+              const cacheBadge = info.cached 
+                ? '<span class="px-2 py-0.5 rounded text-xs bg-green-950/40 text-green-400 border border-green-900/50">Cache Hit</span>'
+                : '<span class="px-2 py-0.5 rounded text-xs bg-amber-950/40 text-amber-400 border border-amber-900/50">Live Fetch</span>';
+              
+              card.innerHTML = 
+                '<div class="flex justify-between items-center border-b border-gray-800 pb-2 mb-2">' +
+                  '<h4 class="font-bold text-white text-base">' + ticker + '</h4>' +
+                  '<div class="flex gap-2 items-center">' +
+                    cacheBadge +
+                  '</div>' +
+                '</div>' +
+                '<div class="text-xs text-gray-400 mb-3 space-y-0.5">' +
+                  '<div>Filing Date: <span class="text-gray-200 font-medium">' + (info.filingDate || 'N/A') + '</span></div>' +
+                  '<div>Accession: <span class="text-gray-200 font-medium font-mono">' + (info.accessionNumber || 'N/A') + '</span></div>' +
+                '</div>' +
+                '<div class="text-sm text-gray-300 leading-relaxed flex-1 prose max-w-none">' + marked.parse(info.summary || '') + '</div>';
+            }
+            cardsContainer.appendChild(card);
+          }
+
+          if (data.status === "processing") {
+            setTimeout(poll, pollInterval);
+            loading.classList.remove('hidden');
+            results.classList.remove('hidden');
+            document.getElementById('synth-synthesis-card').classList.add('hidden');
+          } else {
+            const synthContent = document.getElementById('synth-synthesis-content');
+            synthContent.innerHTML = marked.parse(data.data.synthesis || '');
+            
+            loading.classList.add('hidden');
+            results.classList.remove('hidden');
+            document.getElementById('synth-synthesis-card').classList.remove('hidden');
+            
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+          }
+        } catch (err) {
+          alert("Error executing comparative analysis: " + err.message);
+          loading.classList.add('hidden');
+          placeholder.classList.remove('hidden');
+          btn.disabled = false;
+          btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
-        
-        const synthContent = document.getElementById('synth-synthesis-content');
-        synthContent.innerHTML = marked.parse(data.data.synthesis || '');
-        
-        loading.classList.add('hidden');
-        results.classList.remove('hidden');
-      } catch (err) {
-        alert("Error executing comparative analysis: " + err.message);
-        loading.classList.add('hidden');
-        placeholder.classList.remove('hidden');
-      } finally {
-        btn.disabled = false;
-        btn.classList.remove('opacity-50', 'cursor-not-allowed');
       }
+
+      poll();
     }
   </script>
 </body>

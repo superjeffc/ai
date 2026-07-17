@@ -6,6 +6,7 @@ export interface Env {
   API_SECRET?: string;
   TAVILY_API_KEY?: string;
   FMP_API_KEY?: string;
+  SEC_QUEUE?: any;
 }
 
 export interface Message {

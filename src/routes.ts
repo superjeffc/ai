@@ -1,6 +1,6 @@
 import { Env, Message } from "./types";
 import { getHTMLFrontend } from "./frontend";
-import { synthesizeSingleTicker, runComparativeReduce } from "./financials";
+import { synthesizeSingleTicker, runComparativeReduce, getCikForTicker, getRecentFilingInfo } from "./financials";
 
 /**
  * ROUTE 1: Serves the Web UI Layout
@@ -488,21 +488,109 @@ export async function handleSynthesizeRoute(request: Request, env: Env, url: URL
       });
     }
 
-    // Concurrently execute Map Phase
-    const tickerPromises = tickers.map(ticker => synthesizeSingleTicker(ticker, env));
-    const results = await Promise.all(tickerPromises);
+    const results: any[] = [];
+    const missingTickers: any[] = [];
+
+    // Parallel extraction of CIK and cached filings verification
+    await Promise.all(
+      tickers.map(async (ticker) => {
+        try {
+          const cik = await getCikForTicker(ticker, env);
+          
+          // 1. Fast Cache Check: check D1 for any filing within last 80 days
+          const recentCached = await env.DB.prepare(
+            "SELECT accession_number, filing_date, summary FROM earnings_cache WHERE ticker = ?1 ORDER BY filing_date DESC LIMIT 1"
+          )
+            .bind(ticker)
+            .first<{ accession_number: string; filing_date: string; summary: string }>();
+
+          if (recentCached && recentCached.filing_date) {
+            const filingDateMs = new Date(recentCached.filing_date).getTime();
+            if (!isNaN(filingDateMs)) {
+              const ageInDays = (Date.now() - filingDateMs) / (1000 * 60 * 60 * 24);
+              if (ageInDays < 80) {
+                results.push({
+                  ticker,
+                  cik,
+                  accessionNumber: recentCached.accession_number,
+                  filingDate: recentCached.filing_date,
+                  summary: recentCached.summary,
+                  cached: true
+                });
+                return;
+              }
+            }
+          }
+
+          // 2. Fetch Latest Metadata from SEC to verify exact accession alignment
+          const info = await getRecentFilingInfo(cik);
+          
+          // 3. Exact Accession Cache Check
+          const cachedSummary = await env.DB.prepare(
+            "SELECT summary FROM earnings_cache WHERE ticker = ?1 AND accession_number = ?2"
+          )
+            .bind(ticker, info.accessionNumber)
+            .first<{ summary: string }>();
+
+          if (cachedSummary && cachedSummary.summary) {
+            results.push({
+              ticker,
+              cik,
+              accessionNumber: info.accessionNumber,
+              filingDate: info.filingDate,
+              summary: cachedSummary.summary,
+              cached: true
+            });
+          } else {
+            missingTickers.push({ ticker, cik, accessionNumber: info.accessionNumber });
+            results.push({ ticker, error: "Ingesting..." });
+          }
+        } catch (err: any) {
+          results.push({ ticker, error: err.message || "Failed to retrieve filing metadata" });
+        }
+      })
+    );
+
+    // If there are missing reports, push jobs to background queue
+    if (missingTickers.length > 0) {
+      if (env.SEC_QUEUE) {
+        for (const m of missingTickers) {
+          await env.SEC_QUEUE.send({ ticker: m.ticker });
+        }
+      } else {
+        console.warn("SEC_QUEUE binding is missing; cannot queue ingestion job.");
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          status: "processing",
+          data: {
+            summaries: results.reduce((acc, curr) => {
+              acc[curr.ticker] = curr;
+              return acc;
+            }, {} as Record<string, any>),
+            synthesis: null
+          }
+        }),
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
+        }
+      );
+    }
 
     // Execute Reduce Phase (with caching)
     const validResults = results.filter(r => r.summary && !r.error);
     let synthesis = "";
 
     if (validResults.length > 0) {
-      // Sort to ensure order-independence (e.g. AAPL,MSFT is same as MSFT,AAPL)
       const sortedResults = [...validResults].sort((a, b) => a.ticker.localeCompare(b.ticker));
       const tickersKey = "SYNTHESIS:" + sortedResults.map(r => r.ticker).join(",");
       const accessionsKey = sortedResults.map(r => r.accessionNumber || "").join(",");
 
-      // Check D1 cache for this exact comparative synthesis
       try {
         const cachedSynth = await env.DB.prepare(
           "SELECT summary FROM earnings_cache WHERE ticker = ?1 AND accession_number = ?2"
@@ -518,10 +606,8 @@ export async function handleSynthesizeRoute(request: Request, env: Env, url: URL
       }
 
       if (!synthesis) {
-        // Cache miss: generate live using AI model
         synthesis = await runComparativeReduce(results, env);
 
-        // Save generated synthesis to D1 cache
         try {
           const maxFilingDate = sortedResults.reduce((max, r) => {
             return (r.filingDate && r.filingDate > max) ? r.filingDate : max;
@@ -542,6 +628,7 @@ export async function handleSynthesizeRoute(request: Request, env: Env, url: URL
 
     const responsePayload = {
       success: true,
+      status: "completed",
       data: {
         summaries: results.reduce((acc, curr) => {
           acc[curr.ticker] = curr;
