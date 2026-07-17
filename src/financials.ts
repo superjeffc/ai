@@ -447,7 +447,7 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
       .bind(cleanTicker, accessionNumber)
       .first<{ summary: string }>();
 
-    if (cachedSummary && cachedSummary.summary) {
+    if (cachedSummary && cachedSummary.summary && cachedSummary.summary !== "PENDING") {
       return {
         ticker: cleanTicker,
         cik,
