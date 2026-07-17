@@ -96,7 +96,10 @@ export default {
         const { ticker } = body;
         try {
           console.log(`Queue Ingestion: Processing ${ticker}`);
-          await synthesizeSingleTicker(ticker, env);
+          const res = await synthesizeSingleTicker(ticker, env);
+          if (res.error) {
+            throw new Error(res.error);
+          }
         } catch (err: any) {
           console.error(`Queue consumer failed for ${ticker}:`, err.message);
           try {
