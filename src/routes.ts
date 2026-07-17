@@ -533,16 +533,31 @@ export async function handleSynthesizeRoute(request: Request, env: Env, url: URL
             .first<{ summary: string }>();
 
           if (cachedSummary && cachedSummary.summary) {
-            results.push({
-              ticker,
-              cik,
-              accessionNumber: info.accessionNumber,
-              filingDate: info.filingDate,
-              summary: cachedSummary.summary,
-              cached: true
-            });
+            if (cachedSummary.summary === "PENDING") {
+              results.push({ ticker, error: "Ingesting..." });
+            } else {
+              results.push({
+                ticker,
+                cik,
+                accessionNumber: info.accessionNumber,
+                filingDate: info.filingDate,
+                summary: cachedSummary.summary,
+                cached: true
+              });
+            }
           } else {
-            missingTickers.push({ ticker, cik, accessionNumber: info.accessionNumber });
+            // Write PENDING lock record so we don't duplicate enqueue
+            try {
+              await env.DB.prepare(
+                "INSERT INTO earnings_cache (ticker, accession_number, filing_date, summary) VALUES (?1, ?2, ?3, ?4)"
+              )
+                .bind(ticker, info.accessionNumber, info.filingDate, "PENDING")
+                .run();
+              
+              missingTickers.push({ ticker, cik, accessionNumber: info.accessionNumber });
+            } catch (dbLockErr) {
+              // If write fails (conflict), another isolate wrote it first. Treat as pending.
+            }
             results.push({ ticker, error: "Ingesting..." });
           }
         } catch (err: any) {
@@ -606,16 +621,33 @@ export async function handleSynthesizeRoute(request: Request, env: Env, url: URL
       }
 
       if (!synthesis) {
-        if (env.SEC_QUEUE) {
-          await env.SEC_QUEUE.send({
-            type: "synthesis",
-            tickers: sortedResults.map(r => r.ticker),
-            results: validResults
-          });
-        } else {
-          console.warn("SEC_QUEUE binding is missing; cannot queue synthesis job.");
+        // Write PENDING synthesis lock to prevent duplicate enqueuing
+        try {
+          const maxFilingDate = sortedResults.reduce((max, r) => {
+            return (r.filingDate && r.filingDate > max) ? r.filingDate : max;
+          }, "1970-01-01");
+
+          await env.DB.prepare(
+            "INSERT OR REPLACE INTO earnings_cache (ticker, accession_number, filing_date, summary) VALUES (?1, ?2, ?3, ?4)"
+          )
+            .bind(tickersKey, accessionsKey, maxFilingDate, "PENDING")
+            .run();
+
+          if (env.SEC_QUEUE) {
+            await env.SEC_QUEUE.send({
+              type: "synthesis",
+              tickers: sortedResults.map(r => r.ticker),
+              results: validResults
+            });
+          }
+        } catch (dbLockErr) {
+          // If conflict occurs, it's already pending
         }
 
+        synthesis = "PENDING";
+      }
+
+      if (synthesis === "PENDING") {
         return new Response(
           JSON.stringify({
             success: true,
