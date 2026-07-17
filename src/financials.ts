@@ -89,9 +89,11 @@ export async function getRecentFilingInfo(cik: string): Promise<{
   filingDate: string; 
   reportDate: string;
   form: string;
+  sic?: string;
+  sicDescription?: string;
   submissionsData: any 
 }> {
-  const url = `https://data.sec.gov/submissions/CIK${cik}.json`;
+  const url = `https://data.sec.gov/submissions/CIK${cik.padStart(10, "0")}.json`;
   const res = await rateLimitedFetch(url, {
     headers: SEC_HEADERS
   });
@@ -115,6 +117,8 @@ export async function getRecentFilingInfo(cik: string): Promise<{
         filingDate: recent.filingDate[i],
         reportDate: recent.reportDate[i],
         form: formType,
+        sic: data.sic ? String(data.sic) : undefined,
+        sicDescription: data.sicDescription,
         submissionsData: data
       };
     }
@@ -268,6 +272,14 @@ async function getFactsForAccession(
       "FHLBBorrowings"
     ], true);
 
+    const pcl = extractMetric(["ProvisionForLoanAndLeaseLosses", "ProvisionForCreditLosses", "ProvisionForLoanLosses"], false);
+    const cet1 = extractMetric(["CommonEquityTier1CapitalRatio", "CommonEquityTier1CapitalRatioPre2015", "Tier1CommonCapitalRatio"], true);
+    const dda = extractMetric(["DepreciationDepletionAndAmortization", "DepreciationAndAmortization", "DepreciationDepletionAndAmortizationOperatingActivities"], false);
+    const capEx = extractMetric(["PaymentsToAcquirePropertyPlantAndEquipment", "CapitalExpenditures"], false);
+    const cash = extractMetric(["CashAndCashEquivalentsAtCarryingValue", "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"], true);
+    const nim = extractMetric(["NetInterestMargin", "InterestMargin"], false);
+    const nonInterestIncome = extractMetric(["NoninterestIncome"], false);
+
     const outputParts: string[] = [];
     const fpStr = rev ? `FY ${rev.fy} ${rev.fp}` : form;
     outputParts.push(`REPORTING PERIOD: ${fpStr}`);
@@ -334,6 +346,28 @@ async function getFactsForAccession(
       outputParts.push(`Borrowings-to-Equity Ratio (Total Sector Obligations): ${(totalObligations / equity.val).toFixed(4)}`);
     } else {
       outputParts.push("Balance Sheet Metrics: Stockholders' Equity not found (unable to calculate Debt-to-Equity ratios)");
+    }
+
+    if (pcl) {
+      outputParts.push(`Provision for Credit Losses (PCL): ${pcl.val.toLocaleString()} ${pcl.unit}`);
+    }
+    if (cet1) {
+      outputParts.push(`Common Equity Tier 1 (CET1) Ratio: ${cet1.val}`);
+    }
+    if (dda) {
+      outputParts.push(`Depreciation, Depletion & Amortization (DD&A): ${dda.val.toLocaleString()} ${dda.unit}`);
+    }
+    if (capEx) {
+      outputParts.push(`Capital Expenditures (CapEx): ${capEx.val.toLocaleString()} ${capEx.unit}`);
+    }
+    if (cash) {
+      outputParts.push(`Cash and Equivalents: ${cash.val.toLocaleString()} ${cash.unit}`);
+    }
+    if (nim) {
+      outputParts.push(`Net Interest Margin (NIM): ${nim.val}`);
+    }
+    if (nonInterestIncome) {
+      outputParts.push(`Non-Interest Income: ${nonInterestIncome.val.toLocaleString()} ${nonInterestIncome.unit}`);
     }
 
     return outputParts.join("\n");
@@ -490,7 +524,8 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
     }
 
     // 3. Fallback: Fetch recent filing info from SEC submissions index
-    const { accessionNumber, filingDate, reportDate, form, submissionsData } = await getRecentFilingInfo(cik);
+    const info = await getRecentFilingInfo(cik);
+    const { accessionNumber, filingDate, reportDate, form, submissionsData, sic, sicDescription } = info;
 
     // 4. Precise Cache Check: check if the latest accession number matches the cache
     const cachedSummary = await env.DB.prepare(
@@ -516,22 +551,57 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
       fetchEarningCallTranscript(cleanTicker, cik, submissionsData, env)
     ]);
 
-    const systemPrompt = `You are a professional financial analyst. Your role is to synthesize a high-signal earnings summary by cross-examining SEC numeric filings (Form 10-Q or 10-K) against the supplementary earnings release or transcript text (often filed as an 8-K exhibit).
+    const cleanSic = sic || "";
+    const cleanSicDesc = sicDescription || "";
 
-Adapt your financial analysis dynamically to the company's sector:
-1. For traditional companies: Report top-line Revenue and standard Total Debt (Short-term + Long-term).
-2. For Financials, Banks, and REITs (Real Estate Investment Trusts):
-   - Traditional "Revenue" is not appropriate. Distinguish Net Interest Income explicitly (for Annaly, Net Interest Income serves as their genuine top-line baseline after funding costs).
-   - Traditional "Short/Long-term Debt" is often not the primary funding source. Instead, report their primary borrowing/funding obligations (e.g. Repurchase Agreements for REITs, Deposits/Borrowings for Banks) and calculate the ratios using these funding obligations as the Total Debt equivalent.
-   - For REITs (specifically Annaly Capital Management NLY), highlight that while the GAAP Repo-to-Equity calculation (approx. 5.29) is highly accurate based on balance sheet numbers, management also heavily relies on "Economic Leverage" (which includes off-balance sheet items like TBA dollar rolls) and reported it at 5.7x for Q1 2026.
-   - Clarify that key secondary metrics like Net Interest Margin (NIM) and asset yields are fully detailed in the accompanying Investor Presentation (Exhibit 99.1).
-   - Do NOT flag the absence of standard corporate "Revenue" or "Debt" as anomalies or template issues. Explicitly explain the sector-specific context in your summary.`;
+    let sector = "STANDARD";
+    if (cleanSic === "6798" || cleanSicDesc.toUpperCase().includes("REAL ESTATE INVESTMENT TRUSTS")) {
+      sector = "REIT";
+    } else if (cleanSic.startsWith("60") || cleanSic.startsWith("61") || cleanSicDesc.toUpperCase().includes("COMMERCIAL BANK") || cleanSicDesc.toUpperCase().includes("SAVINGS INSTITUTION")) {
+      sector = "BANK";
+    } else if (cleanSic.startsWith("13") || cleanSic.startsWith("10") || cleanSic.startsWith("14") || cleanSicDesc.toUpperCase().includes("CRUDE PETROLEUM") || cleanSicDesc.toUpperCase().includes("MINING")) {
+      sector = "ENERGY_MINING";
+    } else if (cleanSic.startsWith("49") || cleanSicDesc.toUpperCase().includes("ELECTRIC SERVICES") || cleanSicDesc.toUpperCase().includes("GAS UTILITY")) {
+      sector = "UTILITY";
+    } else if (cleanSic === "2834" || cleanSic === "2836" || cleanSicDesc.toUpperCase().includes("BIOLOGICAL PRODUCTS") || cleanSicDesc.toUpperCase().includes("PHARMACEUTICAL")) {
+      sector = "BIOTECH";
+    }
+
+    const systemPrompt = `You are an Institutional Portfolio Manager and Senior Sector Analyst. Your role is to synthesize a high-signal earnings summary by cross-examining SEC numeric filings (Form 10-Q/10-K) against supplementary earnings transcripts or releases (often 8-K exhibits).
+
+You MUST adapt your evaluation framework dynamically to the company's specific sector:
+
+1. COMMERCIAL & RETAIL BANKS ("BANK"):
+   - Standard "Revenue" and "Gross Margin" are completely irrelevant. Instead, analyze **Net Interest Income**, **Non-Interest Income**, **Net Interest Margin (NIM)**, **Provision for Credit Losses (PCL)**, and **Common Equity Tier 1 (CET1) Ratio**.
+   - Customer deposits are liabilities; loans are assets. Do NOT evaluate standard corporate debt. Evaluate capital adequacy (CET1) and loan loss reserves (PCL).
+   
+2. MORTGAGE REITs ("REIT"):
+   - Traditional "Revenue" is not appropriate. Use **Net Interest Income** as the top-line baseline after funding costs.
+   - Traditional corporate debt is not their funding source. Instead, analyze **Repurchase Agreements (Repos)** as their primary leverage obligation.
+   - Compare GAAP leverage (approx 5.29x for NLY) vs. "Economic Leverage" (which includes TBA dollar rolls, approx 5.7x for NLY). Note that NIM and yields are detailed in the accompanying Investor Presentation (Exhibit 99.1).
+   
+3. UPSTREAM ENERGY & MINING ("ENERGY_MINING"):
+   - Earnings fluctuate heavily on commodity prices. Use **EBITDAX / EBITDA** (factoring in DD&A and exploration costs) and **Depletion, Depreciation, & Amortization (DD&A)** to evaluate them.
+   - Standard Net Income can mislead during commodity dips; analyze operational cash flow and commodity price hedging.
+   
+4. UTILITIES & INFRASTRUCTURE ("UTILITY"):
+   - High debt-to-equity ratios are normal and protected by guaranteed regulatory returns. Allow high leverage thresholds.
+   - Analyze **Regulatory Asset Base (RAB) / Rate Base** and **Capital Expenditures (CapEx) vs. Dividend Payout**.
+   
+5. BIOTECH & EARLY-STAGE PHARMA ("BIOTECH"):
+   - Traditional margins, Revenue, and P/E are non-existent (N/A).
+   - Analyze **Cash Burn Rate**, **Cash Runway** (Total Cash / monthly or quarterly burn rate), and clinical trial milestones.
+
+6. STANDARD CORPORATE ("STANDARD"):
+   - Evaluate standard top-line Revenue, Net Income, EPS (with YoY growth), Stockholders' Equity, and standard Debt-to-Equity (D/E) ratios.`;
+
     const userPrompt = `Analyze the following official reported metrics and supplementary earnings release/transcript for ticker ${cleanTicker}.
 
 COMPANY TICKER: ${cleanTicker}
 FILING TYPE: Form ${form}
 SEC ACCESSION: ${accessionNumber}
 FILING DATE: ${filingDate}
+COMPANY SECTOR CATEGORY: ${sector} (SIC: ${cleanSic} - ${cleanSicDesc})
 
 Extracted SEC Numeric Metrics:
 ${factsText}
@@ -539,17 +609,22 @@ ${factsText}
 Supplementary Earnings Release / Exhibit Document Text:
 ${transcriptText}
 
-CRITICAL EXTRACTION TEMPLATE RULES:
-1. Exact reported income statement metrics:
-   - If the ticker is NLY (Annaly): Label the $452,691,000 metric specifically as "Net Interest Income (serves as the genuine top-line baseline after funding costs)". Include YoY growth rate (105.80%).
-   - Otherwise, label standard Revenue/Top-line.
-2. Extracted balance sheet metrics and calculated ratios:
-   - Report Stockholders' Equity, Total Liabilities, and Total Debt/Borrowings equivalent (e.g. Repo agreements). Calculate L/E and D/E (Borrowings-to-Equity) ratios.
-3. Sector-Specific and Analyst Notes:
-   - If the ticker is NLY (Annaly):
-     * You MUST add this exact note: "While the manual D/E / Borrowings-to-Equity calculation (5.29 using pure GAAP Repos) is highly accurate, management heavily relies on a metric called 'Economic Leverage' (which includes TBA dollar rolls) and reported it at 5.7x for Q1 2026."
-     * You MUST add this exact note: "Key secondary metrics like Net Interest Margin (NIM) and asset yields are fully detailed in the accompanying Investor Presentation (Exhibit 99.1)."
-   - Otherwise, note sector-specific items appropriate for the ticker.
+CRITICAL EXTRACTION TEMPLATE RULES FOR SECTOR: ${sector}
+
+1. For BANK:
+   - Identify Net Interest Income, Non-Interest Income, Net Interest Margin (NIM), Provision for Credit Losses (PCL), and CET1 Ratio.
+   - Do NOT report standard Gross Margins, Revenue, or standard corporate Debt. Explain the regulatory capital and credit provisioning health.
+2. For REIT:
+   - Identify Net Interest Income (serves as the genuine top-line baseline after funding costs), Repurchase Agreements (Repo obligations), GAAP D/E (GAAP Repo Leverage), and Economic Leverage (which includes TBA dollar rolls, e.g. 5.70x for NLY).
+   - Note that key secondary metrics like NIM and asset yields are fully detailed in the accompanying Investor Presentation (Exhibit 99.1).
+3. For ENERGY_MINING:
+   - Identify EBITDA / EBITDAX, DD&A, and cash flow. Explain commodity price dependency and reserve depletion.
+4. For UTILITY:
+   - Identify Regulatory Asset Base (RAB) / Rate Base, CapEx, and Dividend Payout. Explain why high debt is normal and protected by regulatory rates.
+5. For BIOTECH:
+   - Identify Cash and Cash Equivalents, Cash Burn Rate, and Cash Runway. State that Revenue, margins, and P/E are N/A. Focus on clinical trial capital runway.
+6. For STANDARD:
+   - Report standard Revenue, Net Income, EPS, Stockholders' Equity, Total Debt, L/E, and D/E ratios.
 
 Format your response in neat Markdown. Keep your analysis concise, high-signal, and tailored to the sector.`;
 
