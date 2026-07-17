@@ -458,6 +458,21 @@ export async function handleCompletionsRoute(request: Request, env: Env): Promis
  */
 export async function handleSynthesizeRoute(request: Request, env: Env, url: URL): Promise<Response> {
   try {
+    if (url.searchParams.get("debug") === "true") {
+      const ticker = url.searchParams.get("ticker") || "AMD";
+      try {
+        const res = await synthesizeSingleTicker(ticker, env);
+        return new Response(JSON.stringify({ success: true, res }), {
+          headers: { "Content-Type": "application/json" }
+        });
+      } catch (err: any) {
+        return new Response(JSON.stringify({ success: false, error: err.message, stack: err.stack }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+    }
+
     if (url.searchParams.get("clear_cache") === "true") {
       try {
         await env.DB.prepare("DELETE FROM earnings_cache").run();
