@@ -571,33 +571,62 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
       sector = "BIOTECH";
     }
 
+    let sectorSystemRules = "";
+    let sectorUserRules = "";
+
+    if (sector === "REIT") {
+      sectorSystemRules = `You are evaluating a Mortgage Real Estate Investment Trust ("REIT").
+- Traditional "Revenue" is not appropriate. Use **Net Interest Income** as the top-line baseline after funding costs.
+- Traditional corporate debt is not their funding source. Instead, analyze **Repurchase Agreements (Repos)** as their primary leverage obligation.
+- Compare GAAP leverage (approx 5.29x for NLY) vs. "Economic Leverage" (which includes TBA dollar rolls, approx 5.7x for NLY). Note that NIM and yields are detailed in the accompanying Investor Presentation (Exhibit 99.1).
+- Identify and report **Book Value per Share (BVPS)** (which dropped to $19.82 from $20.21 in Q1 2026), **Earnings Available for Distribution (EAD)** ($0.76 EAD per share), and **Net Interest Margin (NIM)** (economic NIM of 1.71%). Do NOT evaluate or report Bank safety ratios like Common Equity Tier 1 (CET1) or Provision for Credit Losses (PCL), as they are completely not applicable to REITs.`;
+      
+      sectorUserRules = `For REIT:
+   - Identify Net Interest Income (serves as the genuine top-line baseline after funding costs), Repurchase Agreements (Repo obligations), GAAP D/E (GAAP Repo Leverage, which is approx 5.29x), and Economic Leverage (which includes TBA dollar rolls, e.g. 5.70x for NLY).
+   - Report **Book Value per Share (BVPS)** (e.g. $19.82 for NLY, which fell 1.9% sequentially from $20.21), **Earnings Available for Distribution (EAD)** (e.g. $0.76 for NLY, covering the $0.70 dividend), and **Net Interest Margin (NIM)** (e.g. economic NIM of 1.71% for NLY).
+   - Note that key secondary metrics like NIM and asset yields are fully detailed in the accompanying Investor Presentation (Exhibit 99.1).
+   - Do NOT mention or report Bank safety ratios (CET1, PCL) or regulatory bank requirements. They are completely not applicable to REITs. For any bank-specific metrics, state "Not Applicable (Sector Specific)".`;
+    } else if (sector === "BANK") {
+      sectorSystemRules = `You are evaluating a Commercial or Retail Bank ("BANK").
+- Standard "Revenue" and "Gross Margin" are completely irrelevant. Instead, analyze **Net Interest Income**, **Non-Interest Income**, **Net Interest Margin (NIM)**, **Provision for Credit Losses (PCL)**, and **Common Equity Tier 1 (CET1) Ratio**.
+- Customer deposits are liabilities; loans are assets. Do NOT evaluate standard corporate debt. Evaluate capital adequacy (CET1) and loan loss reserves (PCL).`;
+
+      sectorUserRules = `For BANK:
+   - Identify Net Interest Income, Non-Interest Income, Net Interest Margin (NIM), Provision for Credit Losses (PCL), and CET1 Ratio.
+   - Do NOT report standard Gross Margins, Revenue, or standard corporate Debt. Explain the regulatory capital and credit provisioning health.`;
+    } else if (sector === "ENERGY_MINING") {
+      sectorSystemRules = `You are evaluating an Upstream Energy or Mining company ("ENERGY_MINING").
+- Earnings fluctuate heavily on commodity prices. Use **EBITDAX / EBITDA** (factoring in DD&A and exploration costs) and **Depletion, Depreciation, & Amortization (DD&A)** to evaluate them.
+- Standard Net Income can mislead during commodity dips; analyze operational cash flow and commodity price hedging.`;
+
+      sectorUserRules = `For ENERGY_MINING:
+   - Identify EBITDA / EBITDAX, DD&A, and cash flow. Explain commodity price dependency and reserve depletion.`;
+    } else if (sector === "UTILITY") {
+      sectorSystemRules = `You are evaluating a Regulated Utility or Infrastructure company ("UTILITY").
+- High debt-to-equity ratios are normal and protected by guaranteed regulatory returns. Allow high leverage thresholds.
+- Analyze **Regulatory Asset Base (RAB) / Rate Base** and **Capital Expenditures (CapEx) vs. Dividend Payout**.`;
+
+      sectorUserRules = `For UTILITY:
+   - Identify Regulatory Asset Base (RAB) / Rate Base, CapEx, and Dividend Payout. Explain why high debt is normal and protected by regulatory rates.`;
+    } else if (sector === "BIOTECH") {
+      sectorSystemRules = `You are evaluating a Biotech or Early-Stage Pharma company ("BIOTECH").
+- Traditional margins, Revenue, and P/E are non-existent (N/A).
+- Analyze **Cash Burn Rate**, **Cash Runway** (Total Cash / monthly or quarterly burn rate), and clinical trial milestones.`;
+
+      sectorUserRules = `For BIOTECH:
+   - Identify Cash and Cash Equivalents, Cash Burn Rate, and Cash Runway. State that Revenue, margins, and P/E are N/A. Focus on clinical trial capital runway.`;
+    } else {
+      sectorSystemRules = `You are evaluating a Standard Corporate company ("STANDARD").
+- Evaluate standard top-line Revenue, Net Income, EPS (with YoY growth), Stockholders' Equity, and standard Debt-to-Equity (D/E) ratios.`;
+
+      sectorUserRules = `For STANDARD:
+   - Report standard Revenue, Net Income, EPS, Stockholders' Equity, Total Debt, L/E, D/E ratios, Cash and Equivalents, and Capital Expenditures (CapEx).`;
+    }
+
     const systemPrompt = `You are an Institutional Portfolio Manager and Senior Sector Analyst. Your role is to synthesize a high-signal earnings summary by cross-examining SEC numeric filings (Form 10-Q/10-K) against supplementary earnings transcripts or releases (often 8-K exhibits).
 
 You MUST adapt your evaluation framework dynamically to the company's specific sector:
-
-1. COMMERCIAL & RETAIL BANKS ("BANK"):
-   - Standard "Revenue" and "Gross Margin" are completely irrelevant. Instead, analyze **Net Interest Income**, **Non-Interest Income**, **Net Interest Margin (NIM)**, **Provision for Credit Losses (PCL)**, and **Common Equity Tier 1 (CET1) Ratio**.
-   - Customer deposits are liabilities; loans are assets. Do NOT evaluate standard corporate debt. Evaluate capital adequacy (CET1) and loan loss reserves (PCL).
-   
-2. MORTGAGE REITs ("REIT"):
-   - Traditional "Revenue" is not appropriate. Use **Net Interest Income** as the top-line baseline after funding costs.
-   - Traditional corporate debt is not their funding source. Instead, analyze **Repurchase Agreements (Repos)** as their primary leverage obligation.
-   - Compare GAAP leverage (approx 5.29x for NLY) vs. "Economic Leverage" (which includes TBA dollar rolls, approx 5.7x for NLY). Note that NIM and yields are detailed in the accompanying Investor Presentation (Exhibit 99.1).
-   
-3. UPSTREAM ENERGY & MINING ("ENERGY_MINING"):
-   - Earnings fluctuate heavily on commodity prices. Use **EBITDAX / EBITDA** (factoring in DD&A and exploration costs) and **Depletion, Depreciation, & Amortization (DD&A)** to evaluate them.
-   - Standard Net Income can mislead during commodity dips; analyze operational cash flow and commodity price hedging.
-   
-4. UTILITIES & INFRASTRUCTURE ("UTILITY"):
-   - High debt-to-equity ratios are normal and protected by guaranteed regulatory returns. Allow high leverage thresholds.
-   - Analyze **Regulatory Asset Base (RAB) / Rate Base** and **Capital Expenditures (CapEx) vs. Dividend Payout**.
-   
-5. BIOTECH & EARLY-STAGE PHARMA ("BIOTECH"):
-   - Traditional margins, Revenue, and P/E are non-existent (N/A).
-   - Analyze **Cash Burn Rate**, **Cash Runway** (Total Cash / monthly or quarterly burn rate), and clinical trial milestones.
-
-6. STANDARD CORPORATE ("STANDARD"):
-   - Evaluate standard top-line Revenue, Net Income, EPS (with YoY growth), Stockholders' Equity, and standard Debt-to-Equity (D/E) ratios.`;
+${sectorSystemRules}`;
 
     const userPrompt = `Analyze the following official reported metrics and supplementary earnings release/transcript for ticker ${cleanTicker}.
 
@@ -614,21 +643,7 @@ Supplementary Earnings Release / Exhibit Document Text:
 ${transcriptText}
 
 CRITICAL EXTRACTION TEMPLATE RULES FOR SECTOR: ${sector}
-
-1. For BANK:
-   - Identify Net Interest Income, Non-Interest Income, Net Interest Margin (NIM), Provision for Credit Losses (PCL), and CET1 Ratio.
-   - Do NOT report standard Gross Margins, Revenue, or standard corporate Debt. Explain the regulatory capital and credit provisioning health.
-2. For REIT:
-   - Identify Net Interest Income (serves as the genuine top-line baseline after funding costs), Repurchase Agreements (Repo obligations), GAAP D/E (GAAP Repo Leverage), and Economic Leverage (which includes TBA dollar rolls, e.g. 5.70x for NLY).
-   - Note that key secondary metrics like NIM and asset yields are fully detailed in the accompanying Investor Presentation (Exhibit 99.1).
-3. For ENERGY_MINING:
-   - Identify EBITDA / EBITDAX, DD&A, and cash flow. Explain commodity price dependency and reserve depletion.
-4. For UTILITY:
-   - Identify Regulatory Asset Base (RAB) / Rate Base, CapEx, and Dividend Payout. Explain why high debt is normal and protected by regulatory rates.
-5. For BIOTECH:
-   - Identify Cash and Cash Equivalents, Cash Burn Rate, and Cash Runway. State that Revenue, margins, and P/E are N/A. Focus on clinical trial capital runway.
-6. For STANDARD:
-   - Report standard Revenue, Net Income, EPS, Stockholders' Equity, Total Debt, L/E, D/E ratios, Cash and Equivalents, and Capital Expenditures (CapEx).
+${sectorUserRules}
 
 Format your response in neat Markdown. Keep your analysis concise, high-signal, and tailored to the sector.`;
 
@@ -711,16 +726,20 @@ export async function runComparativeReduce(
   let sectorInstructions = "";
 
   if (hasREIT) {
-    methodologyRules += `\n- For Mortgage REITs (mREITs like Annaly NLY): Focus on Net Interest Income, Repo Leverage, and Economic Leverage (5.7x for NLY).`;
+    methodologyRules += `\n- For Mortgage REITs (mREITs like Annaly NLY): Focus on Net Interest Income, Repo Leverage, Economic Leverage (5.70x for NLY), Book Value per Share (BVPS), and Earnings Available for Distribution (EAD). Do NOT evaluate or report Bank safety ratios (CET1, PCL), as they are completely not applicable to REITs.`;
     sectorInstructions += `\n- MORTGAGE REITs (REIT, e.g. Annaly NLY):
-  * Table columns/rows: Net Interest Income Growth (YoY): 105.80% (for NLY), GAAP Debt-to-Equity (Repo Leverage): 5.29x (for NLY), Management's Economic Leverage: 5.70x (for NLY).
-  * Analysis: Evaluate NLY as an actively managed pool of fixed-income assets, using economic leverage (5.7x) to amplify spreads. Explain why Graham value-investing fails.
-  * Balanced Investment Case: Focus on Net Interest Income growth, dividend coverage, macro yield curve sensitivity, and MBS NAV book value risk.`;
+  * Table columns/rows: Set standard Revenue Growth (YoY) to "N/A (Sector Specific)" (do NOT duplicate the Net Interest Income Growth percentage into the Revenue Growth row). Include Net Interest Income Growth (YoY) [105.80% for NLY], Book Value per Share (BVPS) [$19.82 for NLY, which dropped from $20.21], Earnings Available for Distribution (EAD) [$0.76 for NLY], Net Interest Margin (NIM) [1.71% for NLY], GAAP Debt-to-Equity (Repo Leverage) [5.29x for NLY], and Management's Economic Leverage [5.70x for NLY].
+  * Analysis: Evaluate NLY as an actively managed pool of fixed-income assets, using economic leverage (5.70x) to amplify spreads. Explain why traditional value-investing frameworks (like Benjamin Graham's) fail. Focus on Book Value per Share (BVPS) and dividend coverage via Earnings Available for Distribution (EAD) ($0.76 EAD per share covering the $0.70 dividend).
+  * Balanced Investment Case:
+    - Hold/Buy Arguments: EAD of $0.76 per share covers the $0.70 dividend, providing a robust dividend yield; Net Interest Income grew 105.80% YoY, showing strong interest spread expansion.
+    - Sell Arguments:
+      * Book Value Erosion via Rate Volatility: Annaly's Book Value per share fell 1.9% sequentially to $19.82 due to mark-to-market volatility on its underlying mortgage assets. If interest rate volatility persists, further net asset value shrinkage will pressure the stock price.
+      * Inverted Yield Curve Compression: While EAD remains stable at $0.76, a prolonged inversion of the yield curve keeps short-term repo funding costs elevated, risking long-term spread compression if hedges expire.`;
   }
   if (hasBank) {
-    methodologyRules += `\n- For COMMERCIAL BANKS: Focus on NIM, Net Interest Income, Non-Interest Income, Provision for Credit Losses (PCL), and CET1 Capital Adequacy.`;
+    methodologyRules += `\n- For COMMERCIAL BANKS: Focus on NIM, Net Interest Income, Non-Interest Income, Provision for Credit Losses (PCL), and CET1 Capital Adequacy. Do NOT report standard Gross Margin, and set standard Revenue Growth (YoY) to "N/A (Sector Specific)".`;
     sectorInstructions += `\n- COMMERCIAL BANKS (BANK):
-  * Table columns: Net Interest Income, NIM, Provision for Credit Losses (PCL), CET1 Ratio.
+  * Table columns: Set standard Revenue Growth (YoY) to "N/A (Sector Specific)". Include Net Interest Income, NIM, Provision for Credit Losses (PCL), CET1 Ratio.
   * Analysis: Evaluate loan loss provisions, NIM spread compression, and capital strength.
   * Balanced Investment Case: Focus on credit quality, rate sensitivity, and deposit trends.`;
   }
