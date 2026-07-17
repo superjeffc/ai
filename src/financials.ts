@@ -693,53 +693,51 @@ export async function runComparativeReduce(
     combinedSummariesText += `=== Ticker: ${item.ticker} ===\n${item.summary}\n\n`;
   }
 
-  const tickersList = validSummaries.map(r => r.ticker).join(", ");
+  const tickersSorted = validSummaries.map(r => r.ticker).sort((a, b) => a.localeCompare(b));
+  const tableHeader = `| Metric | ${tickersSorted.join(" | ")} | Context / Meaning |`;
+  const tableDivider = `| --- | ${tickersSorted.map(() => "---").join(" | ")} | --- |`;
 
   const systemPrompt = `You are an Institutional Portfolio Manager and Senior Sector Analyst. Your role is to analyze and compare earnings summaries using the appropriate sector-specific framework.
 
-CRITICAL METHODOLOGY RULE:
-- Do NOT apply traditional industrial value-investing frameworks (e.g. Benjamin Graham's checklists for standard retail/software companies) to Financials or Mortgage REITs (mREITs like Annaly NLY). Traditional frameworks fail for mREITs because they do not produce goods or hold standard corporate debt.
-- Instead, evaluate Mortgage REITs as actively managed pools of fixed-income assets. Focus on Net Interest Income (spread), GAAP Repo Leverage (GAAP D/E), Economic Leverage (including TBA dollar rolls), dividend sustainability, yield curve sensitivity, and Book Value / NAV risk.`;
+CRITICAL METHODOLOGY RULES:
+- Column order in the Comparative Analysis Table MUST be exactly: ${tickersSorted.join(", ")}. Do NOT swap their columns or values.
+  * Populate columns in this exact sequence: first column is Metric, second column is ${tickersSorted[0]}'s data, ${tickersSorted[1] ? `third column is ${tickersSorted[1]}'s data` : ""}, and the last column is Context / Meaning.
+- Do NOT apply traditional industrial value-investing frameworks (e.g. Benjamin Graham's checklists) to Financials, Banks, or Mortgage REITs (mREITs like Annaly NLY).
+- If a mixture of traditional and financial/REIT tickers is compared:
+  * In the Comparative Analysis Table, list both standard metrics (Revenue Growth, standard D/E) and financial/REIT metrics (Net Interest Income Growth, Economic Leverage), using N/A or appropriate footnotes where a metric is not applicable to a sector.
+  * In the Value-Investing Analysis, write separate distinct paragraphs/sections: one for traditional companies using the standard value framework, and one for the financial/REIT companies explaining why traditional frameworks fail and how the sector-specific framework applies.`;
 
-  const userPrompt = `Below are individual earnings summaries for the requested tickers: ${tickersList}.
+  const userPrompt = `Below are individual earnings summaries for the requested tickers: ${tickersSorted.join(", ")}.
 
 ${combinedSummariesText}
 
-Please synthesize these findings and generate a comparative report. 
+Please synthesize these findings and generate a comparative report.
 
-IF ANY TICKER IS A MORTGAGE REIT (specifically Annaly NLY), you MUST follow this structure exactly:
+CRITICAL FORMATTING INSTRUCTIONS:
+1. You MUST generate the Comparative Analysis Table using this exact header and column order:
+${tableHeader}
+${tableDivider}
 
-# Comparative Analysis Table
-Use a Markdown comparison table customized for the sector. For NLY, you MUST display these exact values:
-| Metric | NLY | Context / Meaning |
-| --- | --- | --- |
-| Net Interest Income Growth (YoY) | 105.80% | Reflects a massive expansion of the core lending spread in Q1 2026. |
-| GAAP Debt-to-Equity (Repo Leverage) | 5.29x | Heavy reliance on short-term funding, typical for agency mREITs. |
-| Management's Economic Leverage | 5.70x | The true leverage metric. Includes off-balance-sheet TBA dollar rolls. |
+Ensure all metrics are aligned to the correct ticker column. Double-check that you do not swap values between columns (e.g., make sure ${tickersSorted[0]}'s metrics are in the ${tickersSorted[0]} column, and ${tickersSorted[1] ? `${tickersSorted[1]}'s metrics are in the ${tickersSorted[1]} column` : "so on"}).
 
-# Mortgage-Banking Value Analysis
-Explain why traditional value-investing frameworks (like Benjamin Graham's) fail when applied to Mortgage REITs (they do not produce goods or hold standard corporate debt; they must be evaluated as an actively managed pool of fixed-income assets). Highlight that Annaly's high economic leverage (5.7x) is an intentional feature of its business model used to amplify thin interest rate spreads into double-digit equity returns, and that the core investment thesis relies on management's ability to hedge against rate volatility while maintaining its dividend yield.
+2. IF ANY TICKER IS A MORTGAGE REIT (specifically Annaly NLY), you MUST follow this structural guidance:
+   - For the NLY columns/rows, use these exact values where applicable:
+     * Net Interest Income Growth (YoY): 105.80% (Reflects a massive expansion of the core lending spread in Q1 2026).
+     * GAAP Debt-to-Equity (Repo Leverage): 5.29x (Heavy reliance on short-term funding).
+     * Management's Economic Leverage: 5.70x (The true leverage metric, including TBA rolls).
+   - In the comparative analysis and value-investing section, address each company's sector-specific context. For Mortgage REITs (like NLY), explain that traditional value-investing frameworks (like Benjamin Graham's) fail because they do not produce goods or hold standard corporate debt. Evaluate them as actively managed pools of fixed-income assets, highlighting that Annaly's high economic leverage (5.7x) is an intentional feature of its business model used to amplify interest spreads into returns.
 
-# Balanced Investment Case
+3. For the Buy/Hold/Sell arguments:
+   - Provide clear arguments for each ticker, attributing them explicitly by ticker name.
+   - Do NOT apply REIT arguments (like economic leverage or yield sensitivity) to standard companies.
+   - Do NOT apply standard industrial arguments (like product margins) to REITs.
 
-🟢 Arguments for a 'Buy' or 'Hold' Position
-1. **Powerful Core Earnings Recovery**: Net Income grew 127.53% YoY, proving that management successfully navigated the rate environment to widen their net interest margin.
-2. **Robust Dividend Sustainability**: For income-seeking investors, the massive surge in Net Interest Income provides strong cash-flow coverage for NLY’s historically high dividend yield.
-3. **Transparency in Portfolio Leverage**: While automated general-market screeners get confused by the balance sheet, management's clear reporting of 5.7x economic leverage shows controlled, sector-standard risk management.
-
-🔴 Arguments for a 'Sell' Position
-1. **Severe Macro Rate Sensitivity**: Annaly's portfolio is structurally exposed to the yield curve. If interest rates pivot unexpectedly or volatility spikes, hedging costs will skyrocket, compressing the spread.
-2. **Magnified Book Value Risk**: At 5.7x economic leverage, even a minor drop in the market value of their underlying mortgage-backed securities (MBS) will cause a highly magnified hit to Annaly's net asset value (NAV) / Book Value.
-
---------------------------------------------------
-Otherwise (if no REITs/Financials are present), generate the report using the standard headings:
+Respond strictly in professional Markdown format. Use the headings:
 # Comparative Analysis Table
 # Value-Investing Analysis
 # Arguments for a 'Hold' Position
 # Arguments for a 'Buy' Position
-# Arguments for a 'Sell' Position
-
-Respond strictly in professional Markdown format. Use the headings exactly as specified above.`;
+# Arguments for a 'Sell' Position`;
 
   const modelName = "@cf/meta/llama-3.1-8b-instruct-fp8";
   const aiResult = await env.AI.run(modelName, {
