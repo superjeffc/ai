@@ -597,84 +597,18 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
       sector = "BIOTECH";
     }
 
-    let sectorSystemRules = "";
-    let sectorUserRules = "";
-
-    if (sector === "REIT") {
-      sectorSystemRules = `You are evaluating a Mortgage Real Estate Investment Trust ("REIT").
-- Traditional "Revenue" is not appropriate. Use **Net Interest Income** as the top-line baseline after funding costs.
-- Traditional corporate debt is not their funding source. Instead, analyze **Repurchase Agreements (Repos)** as their primary leverage obligation.
-- Compare GAAP leverage (approx 5.29x for NLY) vs. "Economic Leverage" (which includes TBA dollar rolls, approx 5.7x for NLY). Note that NIM and yields are detailed in the accompanying Investor Presentation (Exhibit 99.1).
-- Identify and report **Book Value per Share (BVPS)** (which dropped to $19.82 from $20.21 in Q1 2026), **Earnings Available for Distribution (EAD)** ($0.76 EAD per share), and **Net Interest Margin (NIM)** (economic NIM of 1.71%). Do NOT evaluate or report Bank safety ratios like Common Equity Tier 1 (CET1) or Provision for Credit Losses (PCL), as they are completely not applicable to REITs.`;
-      
-      sectorUserRules = `For REIT:
-   - Identify Net Interest Income (serves as the genuine top-line baseline after funding costs) and Repurchase Agreements (Repo obligations).
-   - Report **GAAP Repo Leverage** (approx 5.29x for NLY) and **Economic Leverage** (which includes TBA dollar rolls, e.g. 5.70x for NLY) as the primary leverage markers. Do NOT calculate or report standard corporate Debt-to-Equity (D/E) ratio (or 0.0000) as traditional corporate debt is not a funding source.
-   - Report **Book Value per Share (BVPS)** (e.g. $19.82 for NLY, which fell 1.9% sequentially from $20.21), **Earnings Available for Distribution (EAD)** (e.g. $0.76 for NLY, covering the $0.70 dividend), and **Net Interest Margin (NIM)** (e.g. economic NIM of 1.71% for NLY).
-   - Note that key secondary metrics like NIM and asset yields are fully detailed in the accompanying Investor Presentation (Exhibit 99.1).
-   - Do NOT refer to NLY's assets or holdings as a 'loan portfolio'; instead, use 'securities portfolio' or 'housing finance portfolio' since it is an Agency MBS investor, not a loan originator.
-   - Do NOT mention or report Bank safety ratios (CET1, PCL) or regulatory bank requirements. They are completely not applicable to REITs. For any bank-specific metrics, state "Not Applicable (Sector Specific)".`;
-    } else if (sector === "BANK") {
-      sectorSystemRules = `You are evaluating a Commercial or Retail Bank ("BANK").
-- Standard "Revenue" and "Gross Margin" are completely irrelevant. Instead, analyze **Net Interest Income**, **Non-Interest Income**, **Net Interest Margin (NIM)**, **Provision for Credit Losses (PCL)**, and **Common Equity Tier 1 (CET1) Ratio**.
-- Customer deposits are liabilities; loans are assets. Do NOT evaluate standard corporate debt. Evaluate capital adequacy (CET1) and loan loss reserves (PCL).`;
-
-      sectorUserRules = `For BANK:
-   - Identify Net Interest Income, Non-Interest Income, Net Interest Margin (NIM), Provision for Credit Losses (PCL), and CET1 Ratio.
-   - Do NOT report standard Gross Margins, Revenue, or standard corporate Debt. Explain the regulatory capital and credit provisioning health.`;
-    } else if (sector === "ENERGY_MINING") {
-      sectorSystemRules = `You are evaluating an Upstream Energy or Mining company ("ENERGY_MINING").
-- Earnings fluctuate heavily on commodity prices. Use **EBITDAX / EBITDA** (factoring in DD&A and exploration costs) and **Depletion, Depreciation, & Amortization (DD&A)** to evaluate them.
-- Standard Net Income can mislead during commodity dips; analyze operational cash flow and commodity price hedging.`;
-
-      sectorUserRules = `For ENERGY_MINING:
-   - Identify EBITDA / EBITDAX, DD&A, and cash flow. Explain commodity price dependency and reserve depletion.`;
-    } else if (sector === "UTILITY") {
-      sectorSystemRules = `You are evaluating a Regulated Utility or Infrastructure company ("UTILITY").
-- High debt-to-equity ratios are normal and protected by guaranteed regulatory returns. Allow high leverage thresholds.
-- Analyze **Regulatory Asset Base (RAB) / Rate Base** and **Capital Expenditures (CapEx) vs. Dividend Payout**.`;
-
-      sectorUserRules = `For UTILITY:
-   - Identify Regulatory Asset Base (RAB) / Rate Base, CapEx, and Dividend Payout. Explain why high debt is normal and protected by regulatory rates.`;
-    } else if (sector === "BIOTECH") {
-      sectorSystemRules = `You are evaluating a Biotech or Early-Stage Pharma company ("BIOTECH").
-- Traditional margins, Revenue, and P/E are non-existent (N/A).
-- Analyze **Cash Burn Rate**, **Cash Runway** (Total Cash / monthly or quarterly burn rate), and clinical trial milestones.`;
-
-      sectorUserRules = `For BIOTECH:
-   - Identify Cash and Cash Equivalents, Cash Burn Rate, and Cash Runway. State that Revenue, margins, and P/E are N/A. Focus on clinical trial capital runway.`;
-    } else {
-      sectorSystemRules = `You are evaluating a Standard Corporate company ("STANDARD").
-- Evaluate standard top-line Revenue, Gross Margin, Net Income, EPS (with YoY growth), Stockholders' Equity, standard Debt-to-Equity (D/E) ratios, Cash and Equivalents, and Capital Expenditures (CapEx).`;
-
-      sectorUserRules = `For STANDARD:
-   - Report standard Revenue, Gross Margin, Net Income, EPS, Stockholders' Equity, Total Debt, L/E, D/E ratios, Cash and Equivalents, and Capital Expenditures (CapEx).
-   - You MUST extract and report the exact Capital Expenditures (CapEx) value printed under 'Extracted SEC Numeric Metrics' above. Do NOT say 'Not explicitly reported' if it is present in the numeric metrics. If it is 4,344,000,000 USD (like for Apple Q2 2026), report it as $4,344,000,000 USD (or $4,344M).`;
-    }
-
-    const systemPrompt = `You are an Institutional Portfolio Manager and Senior Sector Analyst. Your role is to synthesize a high-signal earnings summary by cross-examining SEC numeric filings (Form 10-Q/10-K) against supplementary earnings transcripts or releases (often 8-K exhibits).
-
-You MUST adapt your evaluation framework dynamically to the company's specific sector:
-${sectorSystemRules}`;
-
-    const userPrompt = `Analyze the following official reported metrics and supplementary earnings release/transcript for ticker ${cleanTicker}.
-
-COMPANY TICKER: ${cleanTicker}
-FILING TYPE: Form ${form}
-SEC ACCESSION: ${accessionNumber}
-FILING DATE: ${filingDate}
-COMPANY SECTOR CATEGORY: ${sector} (SIC: ${cleanSic} - ${cleanSicDesc})
-
-Extracted SEC Numeric Metrics:
-${factsText}
-
-Supplementary Earnings Release / Exhibit Document Text:
-${transcriptText}
-
-CRITICAL EXTRACTION TEMPLATE RULES FOR SECTOR: ${sector}
-${sectorUserRules}
-
-Format your response in neat Markdown. Keep your analysis concise, high-signal, and tailored to the sector.`;
+    const systemPrompt = getMapSystemPrompt(sector);
+    const userPrompt = getMapUserPrompt({
+      ticker: cleanTicker,
+      form,
+      accessionNumber,
+      filingDate,
+      sector,
+      sic: cleanSic,
+      sicDesc: cleanSicDesc,
+      factsText,
+      transcriptText
+    });
 
     const modelName = "@cf/meta/llama-3.1-8b-instruct-fp8";
     const aiResult = await env.AI.run(modelName, {
@@ -781,98 +715,41 @@ export async function runComparativeReduce(
   let sectorInstructions = "";
 
   if (hasREIT) {
-    methodologyRules += `\n- For Mortgage REITs (mREITs like Annaly NLY): Focus on Net Interest Income, Repo Leverage, Economic Leverage (5.70x for NLY), Book Value per Share (BVPS), and Earnings Available for Distribution (EAD). Do NOT evaluate or report Bank safety ratios (CET1, PCL), as they are completely not applicable to REITs.`;
-    sectorInstructions += `\n- MORTGAGE REITs (REIT, e.g. Annaly NLY):
-  * Table columns/rows:
-    - Set standard "Revenue Growth (YoY)" row to "N/A (Sector Specific)" (and use Context: "Measures top-line expansion (Traditional Revenue for IBM; Net Interest Income for NLY)"). Do NOT duplicate the Net Interest Income Growth percentage into the Revenue Growth row.
-    - Delete any standard corporate "Debt-to-Equity (D/E) Ratio" or "GAAP Debt-to-Equity (D/E) Ratio: 0.0000" rows for NLY. Only use "GAAP Repo Leverage" (5.29x for NLY) and "Management's Economic Leverage" (5.70x for NLY) as primary leverage markers.
-    - Include Net Interest Income Growth (YoY) [105.80% for NLY], Book Value per Share (BVPS) [$19.82 for NLY, which dropped from $20.21], Earnings Available for Distribution (EAD) [$0.76 for NLY], Net Interest Margin (NIM) [1.71% for NLY], GAAP Repo Leverage [5.29x for NLY], and Management's Economic Leverage [5.70x for NLY].
-  * Analysis: Evaluate NLY as an actively managed pool of fixed-income assets, using economic leverage (5.70x) to amplify spreads. Explain why traditional value-investing frameworks (like Benjamin Graham's) fail. Focus on Book Value per Share (BVPS) and dividend coverage via Earnings Available for Distribution (EAD) ($0.76 EAD per share covering the $0.70 dividend).
-  * Balanced Investment Case:
-    - Buy Arguments: Focus on high income generation / premium dividend yield (e.g., EAD of $0.76 per share covering the $0.70 dividend), and do NOT mention 'long-term growth' as Mortgage REITs return capital via yields rather than compounding capital for equity growth.
-    - Hold Arguments: Net Interest Income grew 105.80% YoY, showing strong interest spread expansion, but balanced by sequential book value erosion.
-    - Sell Arguments:
-      * Book Value Erosion via Rate Volatility: Annaly's Book Value per share fell 1.9% sequentially to $19.82 due to mark-to-market volatility on its underlying mortgage assets. If interest rate volatility persists, further net asset value shrinkage will pressure the stock price.
-      * Inverted Yield Curve Compression: While EAD remains stable at $0.76, a prolonged inversion of the yield curve keeps short-term repo funding costs elevated, risking long-term spread compression if hedges expire.`;
+    methodologyRules += REDUCE_SECTOR_RULES.REIT.methodologyRules;
+    sectorInstructions += REDUCE_SECTOR_RULES.REIT.sectorInstructions;
   }
   if (hasBank) {
-    methodologyRules += `\n- For COMMERCIAL BANKS: Focus on NIM, Net Interest Income, Non-Interest Income, Provision for Credit Losses (PCL), and CET1 Capital Adequacy. Do NOT report standard Gross Margin, and set standard Revenue Growth (YoY) to "N/A (Sector Specific)".`;
-    sectorInstructions += `\n- COMMERCIAL BANKS (BANK):
-  * Table columns: Set standard Revenue Growth (YoY) to "N/A (Sector Specific)". Include Net Interest Income, NIM, Provision for Credit Losses (PCL), CET1 Ratio.
-  * Analysis: Evaluate loan loss provisions, NIM spread compression, and capital strength.
-  * Balanced Investment Case: Focus on credit quality, rate sensitivity, and deposit trends.`;
+    methodologyRules += REDUCE_SECTOR_RULES.BANK.methodologyRules;
+    sectorInstructions += REDUCE_SECTOR_RULES.BANK.sectorInstructions;
   }
   if (hasEnergy) {
-    methodologyRules += `\n- For Upstream ENERGY/MINING: Focus on EBITDAX, DD&A, and cash flow stability.`;
-    sectorInstructions += `\n- Upstream ENERGY & MINING:
-  * Table columns: Revenue / EBITDAX, DD&A, Price Hedging / Capex.
-  * Analysis: Evaluate commodity price exposure, operational cash flow, and reserve depletion.
-  * Balanced Investment Case: Focus on resource replenishment, production costs, and dividend sustainability.`;
+    methodologyRules += REDUCE_SECTOR_RULES.ENERGY_MINING.methodologyRules;
+    sectorInstructions += REDUCE_SECTOR_RULES.ENERGY_MINING.sectorInstructions;
   }
   if (hasUtility) {
-    methodologyRules += `\n- For UTILITIES: Focus on Regulatory Asset Base (RAB), CapEx, and Dividend Payout. Accept high leverage.`;
-    sectorInstructions += `\n- UTILITIES & INFRASTRUCTURE:
-  * Table columns: Regulatory Rate Base (RAB), CapEx, Dividend Payout.
-  * Analysis: Evaluate regulated return stability and grid infrastructure investment.
-  * Balanced Investment Case: Focus on rate base growth, grid expansion, high debt tolerance, and yield profile.`;
+    methodologyRules += REDUCE_SECTOR_RULES.UTILITY.methodologyRules;
+    sectorInstructions += REDUCE_SECTOR_RULES.UTILITY.sectorInstructions;
   }
   if (hasBiotech) {
-    methodologyRules += `\n- For BIOTECHS: Focus on Cash, Cash Burn Rate, and Cash Runway. Ignore Revenue/Earnings.`;
-    sectorInstructions += `\n- BIOTECH & EARLY-STAGE PHARMA:
-  * Table columns: Cash Balance, Quarterly Burn Rate, Cash Runway (Months).
-  * Analysis: Evaluate capital preservation and clinical pipeline milestones.
-  * Balanced Investment Case: Focus on pipeline catalysts, funding runway, and share dilution risks.`;
+    methodologyRules += REDUCE_SECTOR_RULES.BIOTECH.methodologyRules;
+    sectorInstructions += REDUCE_SECTOR_RULES.BIOTECH.sectorInstructions;
   }
 
-  const systemPrompt = `You are an Institutional Portfolio Manager and Senior Sector Analyst. Your role is to analyze and compare earnings summaries using the appropriate sector-specific framework.
+  const systemPrompt = getReduceSystemPrompt({
+    tickersSorted,
+    methodologyRules
+  });
 
-CRITICAL METHODOLOGY RULES:
-- Column order in the Comparative Analysis Table MUST be exactly: ${tickersSorted.join(", ")}. Do NOT swap their columns or values.
-  * Populate columns in this exact sequence: first column is Metric, second column is ${tickersSorted[0]}'s data, ${tickersSorted[1] ? `third column is ${tickersSorted[1]}'s data` : ""}, and the last column is Context / Meaning.
-- Do NOT apply traditional industrial value-investing frameworks (e.g. Benjamin Graham's checklists) to Financials, Banks, Utilities, or Biotechs.${methodologyRules}
-- If a mixture of traditional and financial/REIT/Utility/Biotech tickers is compared:
-  * In the Comparative Analysis Table, list both standard metrics (Revenue Growth, standard D/E) and the sector-specific metrics, using N/A where a metric is not applicable to a sector.
-  * In the Value-Investing Analysis, write separate distinct paragraphs/sections: one for traditional companies using the standard value framework, and one for the specialized companies using the appropriate sector-specific framework.`;
-
-  const userPrompt = `Below are individual earnings summaries for the requested tickers: ${tickersSorted.join(", ")}.
-
-${combinedSummariesText}
-
-Please synthesize these findings and generate a comparative report.
-
-CRITICAL FORMATTING INSTRUCTIONS:
-1. You MUST generate the Comparative Analysis Table using this exact header and column order:
-${tableHeader}
-${tableDivider}
-
-Ensure all metrics are aligned to the correct ticker column. Double-check that you do not swap values between columns (e.g., make sure ${tickersSorted[0]}'s metrics are in the ${tickersSorted[0]} column, and ${tickersSorted[1] ? `${tickersSorted[1]}'s metrics are in the ${tickersSorted[1]} column` : "so on"}).
-
-2. For each company, you MUST apply its corresponding sector framework:
-- STANDARD CORPORATE (Tech/Retail/Manufacturing, e.g. AAPL, MSFT, NVDA):
-  * Table columns: Revenue Growth (YoY), Gross Margin (%), Net Income Growth (YoY), Debt-to-Equity (D/E), Cash & Equivalents, Capital Expenditures.
-  * For AAPL, MSFT, NVDA comparison, you MUST populate the table with these exact verified numbers (override any summary text to report exactly $4,344M for AAPL CapEx):
-    - AAPL: Revenue Growth: 16.60%, Gross Margin: 49.27% (or ~47.0%), Net Income Growth: 19.36%, D/E: 0.7767, Cash: $45,572M, CapEx: $4,344M.
-    - MSFT: Revenue Growth: 18.30%, Gross Margin: 67.63% (or ~70.0%), Net Income Growth: 23.06%, D/E: 0.0972, Cash: $32,105M, CapEx: $30,876M.
-    - NVDA: Revenue Growth: 85.23%, Gross Margin: 74.93% (or ~75.0%), Net Income Growth: 210.63%, D/E: 0.0433, Cash: $13,237M, CapEx: $1,757M.
-  * Analysis: Use Benjamin Graham's value-investing framework.
-  * Balanced Investment Case:
-    - You MUST write distinct and customized arguments for Buy and Hold positions. Do NOT duplicate text between them.
-    - Buy Arguments: Focus on positive growth catalysts. Specifically: ${buyList}
-    - Hold Arguments: Focus on stable baseline health, defensive attributes, and capital buffer. Specifically: ${holdList}
-    - Sell Arguments: Focus on leverage and capital risks. Specifically: ${sellList}
-${sectorInstructions}
-
-3. For the Buy/Hold/Sell arguments:
-   - Provide clear arguments for each ticker, attributing them explicitly by ticker name.
-   - Do NOT apply REIT/Bank/Utility/Biotech arguments (like economic leverage, PCL, or cash runway) to standard companies (like AAPL or MSFT).
-   - Do NOT apply standard industrial arguments (like product margins) to REITs/Banks/Utilities/Biotechs.
-
-Respond strictly in professional Markdown format. Use the headings:
-# Comparative Analysis Table
-# Value-Investing Analysis
-# Arguments for a 'Hold' Position
-# Arguments for a 'Buy' Position
-# Arguments for a 'Sell' Position`;
+  const userPrompt = getReduceUserPrompt({
+    tickersSorted,
+    combinedSummariesText,
+    tableHeader,
+    tableDivider,
+    buyList,
+    holdList,
+    sellList,
+    sectorInstructions
+  });
 
   const modelName = "@cf/meta/llama-3.1-8b-instruct-fp8";
   const aiResult = await env.AI.run(modelName, {
