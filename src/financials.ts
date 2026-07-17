@@ -10,7 +10,7 @@ const SEC_HEADERS = {
 };
 
 async function rateLimitedFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  const minInterval = 110; // at least 110ms between requests (approx 9 reqs/sec)
+  const minInterval = 440; // 440ms interval for concurrency = 4 (approx 2.27 reqs/sec per worker, total max 9.1 reqs/sec)
   const now = Date.now();
   const timeSinceLast = now - lastRequestTime;
   if (timeSinceLast < minInterval) {
@@ -25,7 +25,7 @@ async function rateLimitedFetch(url: string, options: RequestInit = {}): Promise
  * Translates ticker to a 10-digit zero-padded CIK using a local cache check
  * and fallback to the SEC company_tickers dictionary.
  */
-async function getCikForTicker(ticker: string, env: Env): Promise<string> {
+export async function getCikForTicker(ticker: string, env: Env): Promise<string> {
   const normalizedTicker = ticker.trim().toUpperCase();
   if (!normalizedTicker) {
     throw new Error("Invalid ticker: empty ticker symbol");
@@ -84,7 +84,7 @@ async function getCikForTicker(ticker: string, env: Env): Promise<string> {
  * Fetches the lightweight submissions index for a given CIK and extracts
  * the unique Accession Number and filing date for the most recent 10-Q or 10-K.
  */
-async function getRecentFilingInfo(cik: string): Promise<{ 
+export async function getRecentFilingInfo(cik: string): Promise<{ 
   accessionNumber: string; 
   filingDate: string; 
   reportDate: string;
