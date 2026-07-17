@@ -1,4 +1,6 @@
 import { Env, SECCompanyTicker } from "./types";
+import { getMapSystemPrompt, getMapUserPrompt } from "./prompts/map";
+import { getReduceSystemPrompt, getReduceUserPrompt, REDUCE_SECTOR_RULES } from "./prompts/reduce";
 
 // ─── HELPER FUNCTIONS FOR EARNINGS SYNTHESIZER ────────────────────────────────
 
