@@ -499,7 +499,7 @@ export async function handleSynthesizeRoute(request: Request, env: Env, url: URL
           
           // 1. Fast Cache Check: check D1 for any filing within last 80 days
           const recentCached = await env.DB.prepare(
-            "SELECT accession_number, filing_date, summary FROM earnings_cache WHERE ticker = ?1 ORDER BY filing_date DESC LIMIT 1"
+            "SELECT accession_number, filing_date, summary FROM earnings_cache WHERE ticker = ?1 AND summary != 'PENDING' ORDER BY filing_date DESC LIMIT 1"
           )
             .bind(ticker)
             .first<{ accession_number: string; filing_date: string; summary: string }>();
@@ -598,7 +598,7 @@ export async function handleSynthesizeRoute(request: Request, env: Env, url: URL
     }
 
     // Execute Reduce Phase (with caching)
-    const validResults = results.filter(r => r.summary && !r.error);
+    const validResults = results.filter(r => r.summary && r.summary !== "PENDING" && !r.error);
     let synthesis = "";
 
     if (validResults.length > 0) {
