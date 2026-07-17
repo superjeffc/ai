@@ -6,17 +6,17 @@ export interface MapSectorRules {
 export const MAP_SECTOR_RULES: Record<string, MapSectorRules> = {
   REIT: {
     systemRules: `You are evaluating a Mortgage Real Estate Investment Trust ("REIT").
-- Traditional "Revenue" is not appropriate. Use **Net Interest Income** as the top-line baseline after funding costs.
-- Traditional corporate debt is not their funding source. Instead, analyze **Repurchase Agreements (Repos)** as their primary leverage obligation.
-- Compare GAAP leverage (approx 5.29x for NLY) vs. "Economic Leverage" (which includes TBA dollar rolls, approx 5.7x for NLY). Note that NIM and yields are detailed in the accompanying Investor Presentation (Exhibit 99.1).
-- Identify and report **Book Value per Share (BVPS)** (which dropped to $19.82 from $20.21 in Q1 2026), **Earnings Available for Distribution (EAD)** ($0.76 EAD per share), **Net Interest Margin (NIM)** (economic NIM of 1.71%), and **Cash and Equivalents** (which is approx $1,912,444,000 USD or $1.91B; or ~$1.42B if excluding restricted cash). Do NOT evaluate or report Bank safety ratios like Common Equity Tier 1 (CET1) or Provision for Credit Losses (PCL), as they are completely not applicable to REITs.`,
+- Traditional "Revenue" is not appropriate. Use **Net Interest Income / Net Spread / Total Revenues** as the top-line baseline after funding costs.
+- Traditional corporate debt is not their primary funding source. Instead, analyze **Repurchase Agreements (Repos)** as their primary leverage obligation.
+- Compare GAAP leverage vs. "Economic Leverage" (which includes TBA dollar rolls). Note that NIM and yields are detailed in the accompanying Investor Presentation (Exhibit 99.1).
+- Identify and report **Book Value per Share (BVPS)**, **Earnings Available for Distribution (EAD) / Net Spread Income**, **Net Interest Margin (NIM) / Spread**, and **Cash and Equivalents**. Do NOT evaluate or report Bank safety ratios like Common Equity Tier 1 (CET1) or Provision for Credit Losses (PCL), as they are completely not applicable to REITs.`,
     userRules: `For REIT:
-   - Identify Net Interest Income (serves as the genuine top-line baseline after funding costs) and Repurchase Agreements (Repo obligations).
-   - Report **GAAP Repo Leverage** (approx 5.29x for NLY) and **Economic Leverage** (which includes TBA dollar rolls, e.g. 5.70x for NLY) as the primary leverage markers. Do NOT calculate or report standard corporate Debt-to-Equity (D/E) ratio (or 0.0000) as traditional corporate debt is not a funding source.
-   - Report **Book Value per Share (BVPS)** (e.g. $19.82 for NLY, which fell 1.9% sequentially from $20.21), **Earnings Available for Distribution (EAD)** (e.g. $0.76 for NLY, covering the $0.70 dividend), and **Net Interest Margin (NIM)** (e.g. economic NIM of 1.71% for NLY).
-   - Report **Cash and Equivalents** (e.g., $1,912,444,000 USD or ~$1.91B for NLY; or ~$1.42B if excluding restricted cash. Make sure to distinguish this clearly from Repurchase Agreements/Repo obligations which are $86,068,102,000 USD).
+   - Identify Net Interest Income / Net Spread / Total Revenues (serves as the genuine top-line baseline after funding costs) and Repurchase Agreements (Repo obligations).
+   - Report **GAAP Repo Leverage** and **Economic Leverage** (which includes TBA dollar rolls) as the primary leverage markers. Do NOT calculate or report standard corporate Debt-to-Equity (D/E) ratio if traditional corporate debt is not a funding source.
+   - Report **Book Value per Share (BVPS)**, **Earnings Available for Distribution (EAD) / Net Spread Income**, and **Net Interest Margin (NIM) / Spread**.
+   - Report **Cash and Equivalents**. Make sure to distinguish this clearly from Repurchase Agreements/Repo obligations.
    - Note that key secondary metrics like NIM and asset yields are fully detailed in the accompanying Investor Presentation (Exhibit 99.1).
-   - Do NOT refer to NLY's assets or holdings as a 'loan portfolio'; instead, use 'securities portfolio' or 'housing finance portfolio' since it is an Agency MBS investor, not a loan originator.
+   - Do NOT refer to assets or holdings as a 'loan portfolio' if it is an Agency MBS investor; instead, use 'securities portfolio' or 'housing finance portfolio'.
    - Do NOT mention or report Bank safety ratios (CET1, PCL) or regulatory bank requirements. They are completely not applicable to REITs. For any bank-specific metrics, state "Not Applicable (Sector Specific)".`
   },
   BANK: {
