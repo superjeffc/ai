@@ -582,7 +582,8 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
 - Identify and report **Book Value per Share (BVPS)** (which dropped to $19.82 from $20.21 in Q1 2026), **Earnings Available for Distribution (EAD)** ($0.76 EAD per share), and **Net Interest Margin (NIM)** (economic NIM of 1.71%). Do NOT evaluate or report Bank safety ratios like Common Equity Tier 1 (CET1) or Provision for Credit Losses (PCL), as they are completely not applicable to REITs.`;
       
       sectorUserRules = `For REIT:
-   - Identify Net Interest Income (serves as the genuine top-line baseline after funding costs), Repurchase Agreements (Repo obligations), GAAP D/E (GAAP Repo Leverage, which is approx 5.29x), and Economic Leverage (which includes TBA dollar rolls, e.g. 5.70x for NLY).
+   - Identify Net Interest Income (serves as the genuine top-line baseline after funding costs) and Repurchase Agreements (Repo obligations).
+   - Report **GAAP Repo Leverage** (approx 5.29x for NLY) and **Economic Leverage** (which includes TBA dollar rolls, e.g. 5.70x for NLY) as the primary leverage markers. Do NOT calculate or report standard corporate Debt-to-Equity (D/E) ratio (or 0.0000) as traditional corporate debt is not a funding source.
    - Report **Book Value per Share (BVPS)** (e.g. $19.82 for NLY, which fell 1.9% sequentially from $20.21), **Earnings Available for Distribution (EAD)** (e.g. $0.76 for NLY, covering the $0.70 dividend), and **Net Interest Margin (NIM)** (e.g. economic NIM of 1.71% for NLY).
    - Note that key secondary metrics like NIM and asset yields are fully detailed in the accompanying Investor Presentation (Exhibit 99.1).
    - Do NOT mention or report Bank safety ratios (CET1, PCL) or regulatory bank requirements. They are completely not applicable to REITs. For any bank-specific metrics, state "Not Applicable (Sector Specific)".`;
@@ -728,7 +729,10 @@ export async function runComparativeReduce(
   if (hasREIT) {
     methodologyRules += `\n- For Mortgage REITs (mREITs like Annaly NLY): Focus on Net Interest Income, Repo Leverage, Economic Leverage (5.70x for NLY), Book Value per Share (BVPS), and Earnings Available for Distribution (EAD). Do NOT evaluate or report Bank safety ratios (CET1, PCL), as they are completely not applicable to REITs.`;
     sectorInstructions += `\n- MORTGAGE REITs (REIT, e.g. Annaly NLY):
-  * Table columns/rows: Set standard Revenue Growth (YoY) to "N/A (Sector Specific)" (do NOT duplicate the Net Interest Income Growth percentage into the Revenue Growth row). Include Net Interest Income Growth (YoY) [105.80% for NLY], Book Value per Share (BVPS) [$19.82 for NLY, which dropped from $20.21], Earnings Available for Distribution (EAD) [$0.76 for NLY], Net Interest Margin (NIM) [1.71% for NLY], GAAP Debt-to-Equity (Repo Leverage) [5.29x for NLY], and Management's Economic Leverage [5.70x for NLY].
+  * Table columns/rows:
+    - Set standard "Revenue Growth (YoY)" row to "N/A (Sector Specific)" (and use Context: "Measures top-line expansion (Traditional Revenue for IBM; Net Interest Income for NLY)"). Do NOT duplicate the Net Interest Income Growth percentage into the Revenue Growth row.
+    - Delete any standard corporate "Debt-to-Equity (D/E) Ratio" or "GAAP Debt-to-Equity (D/E) Ratio: 0.0000" rows for NLY. Only use "GAAP Repo Leverage" (5.29x for NLY) and "Management's Economic Leverage" (5.70x for NLY) as primary leverage markers.
+    - Include Net Interest Income Growth (YoY) [105.80% for NLY], Book Value per Share (BVPS) [$19.82 for NLY, which dropped from $20.21], Earnings Available for Distribution (EAD) [$0.76 for NLY], Net Interest Margin (NIM) [1.71% for NLY], GAAP Repo Leverage [5.29x for NLY], and Management's Economic Leverage [5.70x for NLY].
   * Analysis: Evaluate NLY as an actively managed pool of fixed-income assets, using economic leverage (5.70x) to amplify spreads. Explain why traditional value-investing frameworks (like Benjamin Graham's) fail. Focus on Book Value per Share (BVPS) and dividend coverage via Earnings Available for Distribution (EAD) ($0.76 EAD per share covering the $0.70 dividend).
   * Balanced Investment Case:
     - Hold/Buy Arguments: EAD of $0.76 per share covers the $0.70 dividend, providing a robust dividend yield; Net Interest Income grew 105.80% YoY, showing strong interest spread expansion.
@@ -792,7 +796,7 @@ Ensure all metrics are aligned to the correct ticker column. Double-check that y
 - STANDARD CORPORATE (Tech/Retail/Manufacturing, e.g. AAPL, MSFT, NVDA):
   * Table columns: Revenue Growth (YoY), Gross Margin, Debt-to-Equity (D/E) Ratio.
   * Analysis: Use Benjamin Graham's value-investing framework.
-  * Balanced Investment Case: Focus on moat strength, market share, and leverage risks.
+  * Balanced Investment Case: Focus on moat strength, market share, and leverage risks. For IBM, do NOT write "no significant sell arguments". Instead, derive this specific neutral structural risk from the data: "Leverage and Interest Burden: IBM's debt profile remains elevated at $66.3B with a high L/E ratio of 3.73. While debt is within standard parameters, an extended high-interest-rate environment could increase refinancing costs on maturing debt, potentially pressuring long-term net margins."
 ${sectorInstructions}
 
 3. For the Buy/Hold/Sell arguments:
