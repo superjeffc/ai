@@ -130,14 +130,16 @@ export async function getRecentFilingInfo(cik: string): Promise<{
 }
 
 /**
- * Fetches XBRL facts for a CIK and extracts Revenue, EPS, Net Income, and Operating Income
- * specifically for the given Accession Number.
+ * Fetches XBRL facts for a CIK and extracts Revenue, EPS, Net Income, and
  */
 async function getFactsForAccession(
   cik: string,
   accessionNumber: string,
   reportDate: string,
-  form: string
+  form: string,
+  sic: string,
+  sicDescription: string,
+  companyName: string
 ): Promise<string> {
   try {
     const url = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
@@ -225,8 +227,96 @@ async function getFactsForAccession(
       return null;
     };
 
+    // Classify sector to determine revenue cascade mapping
+    const cleanSic = sic || "";
+    const cleanSicDesc = sicDescription || "";
+    const upperSicDesc = cleanSicDesc.toUpperCase();
+    const upperCompanyName = companyName.toUpperCase();
+
+    const repoAgreements = extractMetric([
+      "SecuritiesSoldUnderAgreementsToRepurchaseGross",
+      "SecuritySoldUnderAgreementToRepurchaseAfterOffsetSubjectToMasterNettingArrangement",
+      "SecuritiesSoldUnderAgreementsToRepurchase",
+      "SecuritiesSoldUnderAgreementsToRepurchaseFairValueOfCollateral",
+      "SecuritiesSoldUnderAgreementsToRepurchaseAsset",
+      "SecuritiesSoldUnderAgreementsToRepurchaseFairValueOption",
+      "SecuritiesLoanedOrSoldUnderAgreementsToRepurchase",
+      "RepurchaseAgreements"
+    ], true);
+
+    let sector = "STANDARD";
+    if (cleanSic === "6770" || upperSicDesc.includes("BLANK CHECK") || upperCompanyName.includes("ACQUISITION CORP") || upperCompanyName.includes("ACQUISITION CORPORATION") || upperCompanyName.includes("ACQUISITION")) {
+      sector = "SHELL_SPAC";
+    } else if (cleanSic === "6798" || upperSicDesc.includes("REAL ESTATE INVESTMENT TRUST") || upperSicDesc.includes("REIT")) {
+      const isMortgageREIT = 
+        upperSicDesc.includes("MORTGAGE") || 
+        upperSicDesc.includes("AGENCY") || 
+        upperSicDesc.includes("REPURCHASE") || 
+        upperCompanyName.includes("MORTGAGE") || 
+        upperCompanyName.includes("AGENCY") || 
+        upperCompanyName.includes("REPURCHASE") || 
+        upperCompanyName.includes("MBS") ||
+        upperCompanyName.includes("CAPITAL") ||
+        upperCompanyName.includes("TRUST") ||
+        repoAgreements !== null;
+
+      if (isMortgageREIT) {
+        sector = "REIT";
+      }
+    } else if (
+      cleanSic.startsWith("60") || 
+      cleanSic.startsWith("61") || 
+      upperSicDesc.includes("BANK") || 
+      upperSicDesc.includes("SAVINGS INSTITUTION") || 
+      upperSicDesc.includes("DEPOSITORY")
+    ) {
+      sector = "BANK";
+    } else if (
+      cleanSic.startsWith("10") || 
+      cleanSic.startsWith("12") || 
+      cleanSic.startsWith("13") || 
+      cleanSic.startsWith("14") || 
+      cleanSic.startsWith("29") || 
+      upperSicDesc.includes("PETROLEUM") || 
+      upperSicDesc.includes("MINING") || 
+      upperSicDesc.includes("OIL & GAS")
+    ) {
+      sector = "ENERGY_MINING";
+    } else if (
+      cleanSic.startsWith("49") || 
+      upperSicDesc.includes("ELECTRIC") || 
+      upperSicDesc.includes("GAS UTILITY") || 
+      upperSicDesc.includes("WATER SUPPLY") || 
+      upperSicDesc.includes("TELEPHONE")
+    ) {
+      sector = "UTILITY";
+    } else if (
+      cleanSic.startsWith("283") || 
+      cleanSic === "8731" || 
+      upperSicDesc.includes("BIOLOGICAL") || 
+      upperSicDesc.includes("PHARMACEUTICAL") || 
+      upperSicDesc.includes("BIOTECHNOLOGY")
+    ) {
+      sector = "BIOTECH";
+    }
+
     // Extract key metrics
-    const revenueConcepts = [
+    const revenueConcepts = sector === "REIT" ? [
+      "NetInterestIncome",
+      "NetSpreadAndDollarRollIncome",
+      "RevenuesTotal",
+      "TotalRevenues",
+      "TotalRevenue",
+      "NetInterestIncomeAfterProvisionForLoanLosses",
+      "Revenues",
+      "RevenueFromContractWithCustomerExcludingAssessedTax",
+      "SalesRevenueGoodsNet",
+      "InterestAndDividendIncomeSecurities",
+      "InterestIncomeExpenseNet",
+      "InterestIncomeExpenseAfterProvisionForLoanLosses",
+      "InterestIncomeOperating",
+      "NoninterestIncome"
+    ] : [
       "Revenues",
       "RevenueFromContractWithCustomerExcludingAssessedTax",
       "SalesRevenueNet",
@@ -238,6 +328,7 @@ async function getFactsForAccession(
       "NetInterestIncome",
       "NoninterestIncome"
     ];
+
     const rev = extractMetric(revenueConcepts, false);
     const priorRev = extractPriorMetric(revenueConcepts, rev, false);
 
@@ -251,17 +342,6 @@ async function getFactsForAccession(
     const liabilities = extractMetric(["Liabilities", "LiabilitiesAndStockholdersEquity"], true);
     const ltDebt = extractMetric(["LongTermDebtNoncurrent", "LongTermDebt"], true);
     const stDebt = extractMetric(["LongTermDebtCurrent", "DebtCurrent", "ShortTermBorrowings", "CommercialPaper"], true);
-
-    const repoAgreements = extractMetric([
-      "SecuritiesSoldUnderAgreementsToRepurchaseGross",
-      "SecuritySoldUnderAgreementToRepurchaseAfterOffsetSubjectToMasterNettingArrangement",
-      "SecuritiesSoldUnderAgreementsToRepurchase",
-      "SecuritiesSoldUnderAgreementsToRepurchaseFairValueOfCollateral",
-      "SecuritiesSoldUnderAgreementsToRepurchaseAsset",
-      "SecuritiesSoldUnderAgreementsToRepurchaseFairValueOption",
-      "SecuritiesLoanedOrSoldUnderAgreementsToRepurchase",
-      "RepurchaseAgreements"
-    ], true);
 
     const deposits = extractMetric([
       "Deposits",
@@ -316,14 +396,16 @@ async function getFactsForAccession(
     outputParts.push(`REPORTING PERIOD: ${fpStr}`);
 
     if (rev) {
-      let revStr = `Revenue / Top-line (Concept: ${rev.concept}): ${rev.val.toLocaleString()} ${rev.unit}`;
+      const label = sector === "REIT" ? "Net Interest Income / Net Spread / Total Revenues (Top-line Baseline)" : "Revenue / Top-line";
+      let revStr = `${label} (Concept: ${rev.concept}): ${rev.val.toLocaleString()} ${rev.unit}`;
       if (priorRev) {
         const growth = ((rev.val - priorRev.val) / priorRev.val) * 100;
         revStr += ` (Prior Year: ${priorRev.val.toLocaleString()} ${priorRev.unit}, YoY Growth: ${growth.toFixed(2)}%)`;
       }
       outputParts.push(revStr);
     } else {
-      outputParts.push("Revenue / Top-line: Not found");
+      const label = sector === "REIT" ? "Net Interest Income / Net Spread / Total Revenues (Top-line Baseline)" : "Revenue / Top-line";
+      outputParts.push(`${label}: Not found`);
     }
 
     if (grossMarginPct !== null) {
@@ -438,18 +520,37 @@ async function fetchEarningCallTranscript(ticker: string, cik: string, submissio
       return `No recent filings metadata available to look up 8-K for ${ticker}.`;
     }
 
-    // 1. Filter Logic: look for recent 8-K filings with Item 2.02, 7.01, or 8.01
+    // 1. Filter Logic: look for recent 8-K filings with Item 2.02 (highly preferred for earnings)
     let recent8K: { accessionNumber: string; filingDate: string; primaryDocument: string } | null = null;
+    
+    // First pass: scan for Item 2.02
     for (let i = 0; i < recent.form.length; i++) {
       if (recent.form[i] === "8-K") {
         const items = recent.items?.[i] || "";
-        if (items.includes("2.02") || items.includes("7.01") || items.includes("8.01")) {
+        if (items.includes("2.02")) {
           recent8K = {
             accessionNumber: recent.accessionNumber[i],
             filingDate: recent.filingDate[i],
             primaryDocument: recent.primaryDocument[i]
           };
-          break; // Grab the most recent matching 8-K
+          break;
+        }
+      }
+    }
+
+    // Second pass: fallback to 7.01 or 8.01 if no 2.02 found
+    if (!recent8K) {
+      for (let i = 0; i < recent.form.length; i++) {
+        if (recent.form[i] === "8-K") {
+          const items = recent.items?.[i] || "";
+          if (items.includes("7.01") || items.includes("8.01")) {
+            recent8K = {
+              accessionNumber: recent.accessionNumber[i],
+              filingDate: recent.filingDate[i],
+              primaryDocument: recent.primaryDocument[i]
+            };
+            break;
+          }
         }
       }
     }
@@ -587,7 +688,7 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
 
     // 4. Ingestion & Analysis Pipeline (Cache Miss)
     const [factsText, transcriptText] = await Promise.all([
-      getFactsForAccession(cik, accessionNumber, reportDate, form),
+      getFactsForAccession(cik, accessionNumber, reportDate, form, sic || "", sicDescription || "", submissionsData?.name || ""),
       fetchEarningCallTranscript(cleanTicker, cik, submissionsData, env)
     ]);
 
