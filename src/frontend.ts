@@ -98,7 +98,7 @@ export function getHTMLFrontend(): string {
 
   <div id="synth-container" class="flex-1 flex flex-col overflow-hidden mt-4">
     <div class="w-full bg-gray-900 border border-gray-800 p-4 rounded-xl mb-4 shrink-0">
-      <h2 class="text-sm font-semibold text-gray-300 mb-2">Earnings Synthesizer (SEC Facts vs. Transcript/8-K Filings)</h2>
+      <h2 class="text-sm font-semibold text-gray-300 mb-2">Earnings Synthesizer</h2>
       <div class="search-container">
         <div class="search-input-wrapper">
           <input type="text" id="synth-tickers" placeholder="e.g. AAPL, MSFT, NVDA, AMD" value="AAPL, MSFT, NVDA" class="search-input bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-white placeholder-gray-500 outline-none focus:border-gray-700 text-sm">
@@ -121,7 +121,6 @@ export function getHTMLFrontend(): string {
       <div class="bg-gray-900 border border-gray-800 p-4 rounded-xl prose max-w-none text-gray-200" id="synth-synthesis-card">
         <div class="border-b border-gray-800 pb-2 mb-3 flex justify-between items-center">
           <h3 class="text-base font-bold text-white">Comparative Synthesis Report</h3>
-          <span class="text-xs text-gray-400">Institutional Portfolio Manager View</span>
         </div>
         <div id="synth-synthesis-content" class="text-sm leading-relaxed"></div>
       </div>
