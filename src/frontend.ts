@@ -209,8 +209,9 @@ export function getHTMLFrontend(): string {
           cardsContainer.innerHTML = '';
           
           const summaries = data.data.summaries;
-          for (const ticker of Object.keys(summaries)) {
+          for (const ticker of tickersList) {
             const info = summaries[ticker];
+            if (!info) continue;
             const card = document.createElement('div');
             card.className = "bg-gray-900 border border-gray-800 p-4 rounded-xl flex flex-col";
             
