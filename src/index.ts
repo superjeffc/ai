@@ -64,13 +64,13 @@ export default {
       const body = message.body;
       if (body.type === "synthesis") {
         const { tickers, results } = body;
+        const sortedResults = [...results].sort((a, b) => a.ticker.localeCompare(b.ticker));
+        const tickersKey = "SYNTHESIS:" + sortedResults.map(r => r.ticker).join(",");
+        const accessionsKey = sortedResults.map(r => r.accessionNumber || "").join(",");
         try {
           console.log(`Queue Synthesis: Processing synthesis for ${tickers.join(", ")}`);
           const synthesis = await runComparativeReduce(results, env);
           
-          const sortedResults = [...results].sort((a, b) => a.ticker.localeCompare(b.ticker));
-          const tickersKey = "SYNTHESIS:" + sortedResults.map(r => r.ticker).join(",");
-          const accessionsKey = sortedResults.map(r => r.accessionNumber || "").join(",");
           const maxFilingDate = sortedResults.reduce((max, r) => {
             return (r.filingDate && r.filingDate > max) ? r.filingDate : max;
           }, "1970-01-01");
@@ -82,6 +82,15 @@ export default {
             .run();
         } catch (err: any) {
           console.error(`Queue synthesis failed:`, err.message);
+          try {
+            await env.DB.prepare(
+              "DELETE FROM earnings_cache WHERE ticker = ?1 AND summary = 'PENDING'"
+            )
+              .bind(tickersKey)
+              .run();
+          } catch (dbErr) {
+            console.error(`Failed to delete PENDING synthesis lock:`, dbErr);
+          }
         }
       } else {
         const { ticker } = body;
@@ -90,6 +99,15 @@ export default {
           await synthesizeSingleTicker(ticker, env);
         } catch (err: any) {
           console.error(`Queue consumer failed for ${ticker}:`, err.message);
+          try {
+            await env.DB.prepare(
+              "DELETE FROM earnings_cache WHERE ticker = ?1 AND summary = 'PENDING'"
+            )
+              .bind(ticker)
+              .run();
+          } catch (dbErr) {
+            console.error(`Failed to delete PENDING lock for ${ticker}:`, dbErr);
+          }
         }
       }
       message.ack();
