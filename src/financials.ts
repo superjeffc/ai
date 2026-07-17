@@ -549,7 +549,7 @@ export async function runComparativeReduce(
   }
 
   const tickersList = validSummaries.map(r => r.ticker).join(", ");
-  const systemPrompt = "You are an Institutional Portfolio Manager. Analyze the earnings summaries of the requested companies using a value-investing framework, comparing their metrics, specifically debt-to-equity ratio and revenue growth, and generate a side-by-side comparative analysis. Do not provide an investment recommendation; instead, list arguments for a 'hold' and a 'buy' position.";
+  const systemPrompt = "You are an Institutional Portfolio Manager. Analyze the earnings summaries of the requested companies using a value-investing framework, comparing their metrics, specifically debt-to-equity ratio and revenue growth, and generate a side-by-side comparative analysis. Do not provide an investment recommendation; instead, list arguments for 'hold', 'buy', and 'sell' positions.";
   const userPrompt = `Below are individual earnings summaries for the requested tickers: ${tickersList}.
 
 ${combinedSummariesText}
@@ -559,8 +559,9 @@ Please synthesize these findings and generate:
 2. A detailed analysis using a value-investing framework focusing specifically on the debt-to-equity ratio and revenue growth.
 3. Three distinct, well-supported arguments for a 'hold' position for these tickers.
 4. Three distinct, well-supported arguments for a 'buy' position for these tickers.
+5. Three distinct, well-supported arguments for a 'sell' position for these tickers.
 
-Do NOT provide a final investment recommendation. Instead, focus strictly on detailing the three arguments for hold and three arguments for buy.
+Do NOT provide a final investment recommendation. Instead, focus strictly on detailing the three arguments for hold, three arguments for buy, and three arguments for sell.
 
 Respond strictly in professional Markdown format. Use clear headings for each section.`;
 
