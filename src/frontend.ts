@@ -232,16 +232,9 @@ export function getHTMLFrontend(): string {
                   '<p class="text-sm text-red-400 flex-1">' + info.error + '</p>';
               }
             } else {
-              const cacheBadge = info.cached 
-                ? '<span class="px-2 py-0.5 rounded text-xs bg-green-950/40 text-green-400 border border-green-900/50">Cache Hit</span>'
-                : '<span class="px-2 py-0.5 rounded text-xs bg-amber-950/40 text-amber-400 border border-amber-900/50">Live Fetch</span>';
-              
               card.innerHTML = 
                 '<div class="flex justify-between items-center border-b border-gray-800 pb-2 mb-2">' +
                   '<h4 class="font-bold text-white text-base">' + ticker + '</h4>' +
-                  '<div class="flex gap-2 items-center">' +
-                    cacheBadge +
-                  '</div>' +
                 '</div>' +
                 '<div class="text-xs text-gray-400 mb-3 space-y-0.5">' +
                   '<div>Filing Date: <span class="text-gray-200 font-medium">' + (info.filingDate || 'N/A') + '</span></div>' +
