@@ -247,7 +247,11 @@ async function getFactsForAccession(
     const stDebt = extractMetric(["LongTermDebtCurrent", "DebtCurrent", "ShortTermBorrowings", "CommercialPaper"], true);
 
     const repoAgreements = extractMetric([
+      "SecuritiesSoldUnderAgreementsToRepurchaseGross",
+      "SecuritySoldUnderAgreementToRepurchaseAfterOffsetSubjectToMasterNettingArrangement",
       "SecuritiesSoldUnderAgreementsToRepurchase",
+      "SecuritiesSoldUnderAgreementsToRepurchaseFairValueOfCollateral",
+      "SecuritiesSoldUnderAgreementsToRepurchaseAsset",
       "SecuritiesSoldUnderAgreementsToRepurchaseFairValueOption",
       "SecuritiesLoanedOrSoldUnderAgreementsToRepurchase",
       "RepurchaseAgreements"
