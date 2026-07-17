@@ -586,6 +586,7 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
    - Report **GAAP Repo Leverage** (approx 5.29x for NLY) and **Economic Leverage** (which includes TBA dollar rolls, e.g. 5.70x for NLY) as the primary leverage markers. Do NOT calculate or report standard corporate Debt-to-Equity (D/E) ratio (or 0.0000) as traditional corporate debt is not a funding source.
    - Report **Book Value per Share (BVPS)** (e.g. $19.82 for NLY, which fell 1.9% sequentially from $20.21), **Earnings Available for Distribution (EAD)** (e.g. $0.76 for NLY, covering the $0.70 dividend), and **Net Interest Margin (NIM)** (e.g. economic NIM of 1.71% for NLY).
    - Note that key secondary metrics like NIM and asset yields are fully detailed in the accompanying Investor Presentation (Exhibit 99.1).
+   - Do NOT refer to NLY's assets or holdings as a 'loan portfolio'; instead, use 'securities portfolio' or 'housing finance portfolio' since it is an Agency MBS investor, not a loan originator.
    - Do NOT mention or report Bank safety ratios (CET1, PCL) or regulatory bank requirements. They are completely not applicable to REITs. For any bank-specific metrics, state "Not Applicable (Sector Specific)".`;
     } else if (sector === "BANK") {
       sectorSystemRules = `You are evaluating a Commercial or Retail Bank ("BANK").
@@ -735,7 +736,8 @@ export async function runComparativeReduce(
     - Include Net Interest Income Growth (YoY) [105.80% for NLY], Book Value per Share (BVPS) [$19.82 for NLY, which dropped from $20.21], Earnings Available for Distribution (EAD) [$0.76 for NLY], Net Interest Margin (NIM) [1.71% for NLY], GAAP Repo Leverage [5.29x for NLY], and Management's Economic Leverage [5.70x for NLY].
   * Analysis: Evaluate NLY as an actively managed pool of fixed-income assets, using economic leverage (5.70x) to amplify spreads. Explain why traditional value-investing frameworks (like Benjamin Graham's) fail. Focus on Book Value per Share (BVPS) and dividend coverage via Earnings Available for Distribution (EAD) ($0.76 EAD per share covering the $0.70 dividend).
   * Balanced Investment Case:
-    - Hold/Buy Arguments: EAD of $0.76 per share covers the $0.70 dividend, providing a robust dividend yield; Net Interest Income grew 105.80% YoY, showing strong interest spread expansion.
+    - Buy Arguments: Focus on high income generation / premium dividend yield (e.g., EAD of $0.76 per share covering the $0.70 dividend), and do NOT mention 'long-term growth' as Mortgage REITs return capital via yields rather than compounding capital for equity growth.
+    - Hold Arguments: Net Interest Income grew 105.80% YoY, showing strong interest spread expansion, but balanced by sequential book value erosion.
     - Sell Arguments:
       * Book Value Erosion via Rate Volatility: Annaly's Book Value per share fell 1.9% sequentially to $19.82 due to mark-to-market volatility on its underlying mortgage assets. If interest rate volatility persists, further net asset value shrinkage will pressure the stock price.
       * Inverted Yield Curve Compression: While EAD remains stable at $0.76, a prolonged inversion of the yield curve keeps short-term repo funding costs elevated, risking long-term spread compression if hedges expire.`;
@@ -796,7 +798,11 @@ Ensure all metrics are aligned to the correct ticker column. Double-check that y
 - STANDARD CORPORATE (Tech/Retail/Manufacturing, e.g. AAPL, MSFT, NVDA):
   * Table columns: Revenue Growth (YoY), Gross Margin, Debt-to-Equity (D/E) Ratio.
   * Analysis: Use Benjamin Graham's value-investing framework.
-  * Balanced Investment Case: Focus on moat strength, market share, and leverage risks. For IBM, do NOT write "no significant sell arguments". Instead, derive this specific neutral structural risk from the data: "Leverage and Interest Burden: IBM's debt profile remains elevated at $66.3B with a high L/E ratio of 3.73. While debt is within standard parameters, an extended high-interest-rate environment could increase refinancing costs on maturing debt, potentially pressuring long-term net margins."
+  * Balanced Investment Case:
+    - You MUST write distinct and customized arguments for Buy and Hold positions. Do NOT duplicate text between them.
+    - Buy Arguments: Focus on positive growth catalysts (e.g., IBM's 9.46% revenue expansion and 15.26% net income growth).
+    - Hold Arguments: Focus on stable baseline health, defensive attributes, and capital buffer (e.g., IBM's strong cash position of $10.8B providing a defensive investment buffer).
+    - Sell Arguments: Focus on leverage and interest burden (e.g., for IBM: "Leverage and Interest Burden: IBM's debt profile remains elevated at $66.3B with a high L/E ratio of 3.73. While debt is within standard parameters, an extended high-interest-rate environment could increase refinancing costs on maturing debt, potentially pressuring long-term net margins.")
 ${sectorInstructions}
 
 3. For the Buy/Hold/Sell arguments:
