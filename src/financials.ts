@@ -587,15 +587,43 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
     const cleanSicDesc = sicDescription || "";
 
     let sector = "STANDARD";
-    if (cleanSic === "6798" || cleanSicDesc.toUpperCase().includes("REAL ESTATE INVESTMENT TRUSTS")) {
+    const upperSicDesc = cleanSicDesc.toUpperCase();
+    if (cleanSic === "6798" || upperSicDesc.includes("REAL ESTATE INVESTMENT TRUST") || upperSicDesc.includes("REIT")) {
       sector = "REIT";
-    } else if (cleanSic.startsWith("60") || cleanSic.startsWith("61") || cleanSicDesc.toUpperCase().includes("COMMERCIAL BANK") || cleanSicDesc.toUpperCase().includes("SAVINGS INSTITUTION")) {
+    } else if (
+      cleanSic.startsWith("60") || 
+      cleanSic.startsWith("61") || 
+      upperSicDesc.includes("BANK") || 
+      upperSicDesc.includes("SAVINGS INSTITUTION") || 
+      upperSicDesc.includes("DEPOSITORY")
+    ) {
       sector = "BANK";
-    } else if (cleanSic.startsWith("13") || cleanSic.startsWith("10") || cleanSic.startsWith("14") || cleanSicDesc.toUpperCase().includes("CRUDE PETROLEUM") || cleanSicDesc.toUpperCase().includes("MINING")) {
+    } else if (
+      cleanSic.startsWith("10") || 
+      cleanSic.startsWith("12") || 
+      cleanSic.startsWith("13") || 
+      cleanSic.startsWith("14") || 
+      cleanSic.startsWith("29") || 
+      upperSicDesc.includes("PETROLEUM") || 
+      upperSicDesc.includes("MINING") || 
+      upperSicDesc.includes("OIL & GAS")
+    ) {
       sector = "ENERGY_MINING";
-    } else if (cleanSic.startsWith("49") || cleanSicDesc.toUpperCase().includes("ELECTRIC SERVICES") || cleanSicDesc.toUpperCase().includes("GAS UTILITY")) {
+    } else if (
+      cleanSic.startsWith("49") || 
+      upperSicDesc.includes("ELECTRIC") || 
+      upperSicDesc.includes("GAS UTILITY") || 
+      upperSicDesc.includes("WATER SUPPLY") || 
+      upperSicDesc.includes("TELEPHONE")
+    ) {
       sector = "UTILITY";
-    } else if (cleanSic === "2834" || cleanSic === "2836" || cleanSicDesc.toUpperCase().includes("BIOLOGICAL PRODUCTS") || cleanSicDesc.toUpperCase().includes("PHARMACEUTICAL")) {
+    } else if (
+      cleanSic.startsWith("283") || 
+      cleanSic === "8731" || 
+      upperSicDesc.includes("BIOLOGICAL") || 
+      upperSicDesc.includes("PHARMACEUTICAL") || 
+      upperSicDesc.includes("BIOTECHNOLOGY")
+    ) {
       sector = "BIOTECH";
     }
 

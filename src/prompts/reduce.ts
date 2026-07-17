@@ -118,8 +118,10 @@ ${params.sectorInstructions}
 
 3. For the Buy/Hold/Sell arguments:
    - Provide clear arguments for each ticker, attributing them explicitly by ticker name.
+   - Do NOT generate arguments, headers, or paragraphs for any ticker not explicitly requested in this run: ${params.tickersSorted.join(", ")}. If you see data from other tickers in the summaries context, ignore them completely.
    - Do NOT apply REIT/Bank/Utility/Biotech arguments (like economic leverage, PCL, or cash runway) to standard companies (like AAPL or MSFT).
    - Do NOT apply standard industrial arguments (like product margins) to REITs/Banks/Utilities/Biotechs.
+
 
 Respond strictly in professional Markdown format. Use the headings:
 # Comparative Analysis Table
