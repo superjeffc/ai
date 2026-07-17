@@ -554,16 +554,26 @@ export async function runComparativeReduce(
 
 ${combinedSummariesText}
 
-Please synthesize these findings and generate:
-1. A side-by-side Markdown comparison table focusing on key metrics, specifically debt-to-equity ratio and revenue growth.
-2. A detailed analysis using a value-investing framework focusing specifically on the debt-to-equity ratio and revenue growth.
-3. Three distinct, well-supported arguments for a 'hold' position for these tickers.
-4. Three distinct, well-supported arguments for a 'buy' position for these tickers.
-5. Three distinct, well-supported arguments for a 'sell' position for these tickers.
+Please synthesize these findings and generate a report using the exact heading structure below:
+
+# Comparative Analysis Table
+A side-by-side Markdown comparison table focusing on key metrics: Revenue Growth (YoY) and Debt-to-Equity (D/E) ratio.
+
+# Value-Investing Analysis
+A detailed analysis using a value-investing framework focusing specifically on the debt-to-equity ratio and revenue growth.
+
+# Arguments for a 'Hold' Position
+Provide exactly 3 distinct, well-supported arguments for a 'hold' position for these tickers.
+
+# Arguments for a 'Buy' Position
+Provide exactly 3 distinct, well-supported arguments for a 'buy' position for these tickers.
+
+# Arguments for a 'Sell' Position
+Provide exactly 3 distinct, well-supported arguments for a 'sell' position for these tickers.
 
 Do NOT provide a final investment recommendation. Instead, focus strictly on detailing the three arguments for hold, three arguments for buy, and three arguments for sell.
 
-Respond strictly in professional Markdown format. Use clear headings for each section.`;
+Respond strictly in professional Markdown format. Use the headings exactly as specified above.`;
 
   const modelName = "@cf/meta/llama-3.1-8b-instruct-fp8";
   const aiResult = await env.AI.run(modelName, {
