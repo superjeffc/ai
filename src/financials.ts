@@ -275,7 +275,11 @@ async function getFactsForAccession(
     const pcl = extractMetric(["ProvisionForLoanAndLeaseLosses", "ProvisionForCreditLosses", "ProvisionForLoanLosses"], false);
     const cet1 = extractMetric(["CommonEquityTier1CapitalRatio", "CommonEquityTier1CapitalRatioPre2015", "Tier1CommonCapitalRatio"], true);
     const dda = extractMetric(["DepreciationDepletionAndAmortization", "DepreciationAndAmortization", "DepreciationDepletionAndAmortizationOperatingActivities"], false);
-    const capEx = extractMetric(["PaymentsToAcquirePropertyPlantAndEquipment", "CapitalExpenditures"], false);
+    const capEx = extractMetric([
+      "PaymentsToAcquirePropertyPlantAndEquipment",
+      "PaymentsToAcquireProductiveAssets",
+      "CapitalExpenditures"
+    ], false);
     const cash = extractMetric(["CashAndCashEquivalentsAtCarryingValue", "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"], true);
     const nim = extractMetric(["NetInterestMargin", "InterestMargin"], false);
     const nonInterestIncome = extractMetric(["NoninterestIncome"], false);
@@ -697,15 +701,60 @@ export async function runComparativeReduce(
   const tableHeader = `| Metric | ${tickersSorted.join(" | ")} | Context / Meaning |`;
   const tableDivider = `| --- | ${tickersSorted.map(() => "---").join(" | ")} | --- |`;
 
+  const hasREIT = validSummaries.some(s => s.summary && (s.summary.includes("REIT") || s.summary.includes("Annaly") || s.summary.includes("NLY")));
+  const hasBank = validSummaries.some(s => s.summary && (s.summary.includes("Regulatory Capital") || s.summary.includes("Provision for Credit Losses") || s.summary.includes("CET1")));
+  const hasEnergy = validSummaries.some(s => s.summary && (s.summary.includes("DD&A") || s.summary.includes("EBITDAX") || s.summary.includes("depletion") || s.summary.includes("depreciation, depletion")));
+  const hasUtility = validSummaries.some(s => s.summary && (s.summary.includes("Regulatory Asset Base") || s.summary.includes("Rate Base")));
+  const hasBiotech = validSummaries.some(s => s.summary && (s.summary.includes("Cash Burn Rate") || s.summary.includes("Cash Runway") || s.summary.includes("clinical trial")));
+
+  let methodologyRules = "";
+  let sectorInstructions = "";
+
+  if (hasREIT) {
+    methodologyRules += `\n- For Mortgage REITs (mREITs like Annaly NLY): Focus on Net Interest Income, Repo Leverage, and Economic Leverage (5.7x for NLY).`;
+    sectorInstructions += `\n- MORTGAGE REITs (REIT, e.g. Annaly NLY):
+  * Table columns/rows: Net Interest Income Growth (YoY): 105.80% (for NLY), GAAP Debt-to-Equity (Repo Leverage): 5.29x (for NLY), Management's Economic Leverage: 5.70x (for NLY).
+  * Analysis: Evaluate NLY as an actively managed pool of fixed-income assets, using economic leverage (5.7x) to amplify spreads. Explain why Graham value-investing fails.
+  * Balanced Investment Case: Focus on Net Interest Income growth, dividend coverage, macro yield curve sensitivity, and MBS NAV book value risk.`;
+  }
+  if (hasBank) {
+    methodologyRules += `\n- For COMMERCIAL BANKS: Focus on NIM, Net Interest Income, Non-Interest Income, Provision for Credit Losses (PCL), and CET1 Capital Adequacy.`;
+    sectorInstructions += `\n- COMMERCIAL BANKS (BANK):
+  * Table columns: Net Interest Income, NIM, Provision for Credit Losses (PCL), CET1 Ratio.
+  * Analysis: Evaluate loan loss provisions, NIM spread compression, and capital strength.
+  * Balanced Investment Case: Focus on credit quality, rate sensitivity, and deposit trends.`;
+  }
+  if (hasEnergy) {
+    methodologyRules += `\n- For Upstream ENERGY/MINING: Focus on EBITDAX, DD&A, and cash flow stability.`;
+    sectorInstructions += `\n- Upstream ENERGY & MINING:
+  * Table columns: Revenue / EBITDAX, DD&A, Price Hedging / Capex.
+  * Analysis: Evaluate commodity price exposure, operational cash flow, and reserve depletion.
+  * Balanced Investment Case: Focus on resource replenishment, production costs, and dividend sustainability.`;
+  }
+  if (hasUtility) {
+    methodologyRules += `\n- For UTILITIES: Focus on Regulatory Asset Base (RAB), CapEx, and Dividend Payout. Accept high leverage.`;
+    sectorInstructions += `\n- UTILITIES & INFRASTRUCTURE:
+  * Table columns: Regulatory Rate Base (RAB), CapEx, Dividend Payout.
+  * Analysis: Evaluate regulated return stability and grid infrastructure investment.
+  * Balanced Investment Case: Focus on rate base growth, grid expansion, high debt tolerance, and yield profile.`;
+  }
+  if (hasBiotech) {
+    methodologyRules += `\n- For BIOTECHS: Focus on Cash, Cash Burn Rate, and Cash Runway. Ignore Revenue/Earnings.`;
+    sectorInstructions += `\n- BIOTECH & EARLY-STAGE PHARMA:
+  * Table columns: Cash Balance, Quarterly Burn Rate, Cash Runway (Months).
+  * Analysis: Evaluate capital preservation and clinical pipeline milestones.
+  * Balanced Investment Case: Focus on pipeline catalysts, funding runway, and share dilution risks.`;
+  }
+
   const systemPrompt = `You are an Institutional Portfolio Manager and Senior Sector Analyst. Your role is to analyze and compare earnings summaries using the appropriate sector-specific framework.
 
 CRITICAL METHODOLOGY RULES:
 - Column order in the Comparative Analysis Table MUST be exactly: ${tickersSorted.join(", ")}. Do NOT swap their columns or values.
   * Populate columns in this exact sequence: first column is Metric, second column is ${tickersSorted[0]}'s data, ${tickersSorted[1] ? `third column is ${tickersSorted[1]}'s data` : ""}, and the last column is Context / Meaning.
-- Do NOT apply traditional industrial value-investing frameworks (e.g. Benjamin Graham's checklists) to Financials, Banks, or Mortgage REITs (mREITs like Annaly NLY).
-- If a mixture of traditional and financial/REIT tickers is compared:
-  * In the Comparative Analysis Table, list both standard metrics (Revenue Growth, standard D/E) and financial/REIT metrics (Net Interest Income Growth, Economic Leverage), using N/A or appropriate footnotes where a metric is not applicable to a sector.
-  * In the Value-Investing Analysis, write separate distinct paragraphs/sections: one for traditional companies using the standard value framework, and one for the financial/REIT companies explaining why traditional frameworks fail and how the sector-specific framework applies.`;
+- Do NOT apply traditional industrial value-investing frameworks (e.g. Benjamin Graham's checklists) to Financials, Banks, Utilities, or Biotechs.${methodologyRules}
+- If a mixture of traditional and financial/REIT/Utility/Biotech tickers is compared:
+  * In the Comparative Analysis Table, list both standard metrics (Revenue Growth, standard D/E) and the sector-specific metrics, using N/A where a metric is not applicable to a sector.
+  * In the Value-Investing Analysis, write separate distinct paragraphs/sections: one for traditional companies using the standard value framework, and one for the specialized companies using the appropriate sector-specific framework.`;
 
   const userPrompt = `Below are individual earnings summaries for the requested tickers: ${tickersSorted.join(", ")}.
 
@@ -720,17 +769,17 @@ ${tableDivider}
 
 Ensure all metrics are aligned to the correct ticker column. Double-check that you do not swap values between columns (e.g., make sure ${tickersSorted[0]}'s metrics are in the ${tickersSorted[0]} column, and ${tickersSorted[1] ? `${tickersSorted[1]}'s metrics are in the ${tickersSorted[1]} column` : "so on"}).
 
-2. IF ANY TICKER IS A MORTGAGE REIT (specifically Annaly NLY), you MUST follow this structural guidance:
-   - For the NLY columns/rows, use these exact values where applicable:
-     * Net Interest Income Growth (YoY): 105.80% (Reflects a massive expansion of the core lending spread in Q1 2026).
-     * GAAP Debt-to-Equity (Repo Leverage): 5.29x (Heavy reliance on short-term funding).
-     * Management's Economic Leverage: 5.70x (The true leverage metric, including TBA rolls).
-   - In the comparative analysis and value-investing section, address each company's sector-specific context. For Mortgage REITs (like NLY), explain that traditional value-investing frameworks (like Benjamin Graham's) fail because they do not produce goods or hold standard corporate debt. Evaluate them as actively managed pools of fixed-income assets, highlighting that Annaly's high economic leverage (5.7x) is an intentional feature of its business model used to amplify interest spreads into returns.
+2. For each company, you MUST apply its corresponding sector framework:
+- STANDARD CORPORATE (Tech/Retail/Manufacturing, e.g. AAPL, MSFT, NVDA):
+  * Table columns: Revenue Growth (YoY), Gross Margin, Debt-to-Equity (D/E) Ratio.
+  * Analysis: Use Benjamin Graham's value-investing framework.
+  * Balanced Investment Case: Focus on moat strength, market share, and leverage risks.
+${sectorInstructions}
 
 3. For the Buy/Hold/Sell arguments:
    - Provide clear arguments for each ticker, attributing them explicitly by ticker name.
-   - Do NOT apply REIT arguments (like economic leverage or yield sensitivity) to standard companies.
-   - Do NOT apply standard industrial arguments (like product margins) to REITs.
+   - Do NOT apply REIT/Bank/Utility/Biotech arguments (like economic leverage, PCL, or cash runway) to standard companies (like AAPL or MSFT).
+   - Do NOT apply standard industrial arguments (like product margins) to REITs/Banks/Utilities/Biotechs.
 
 Respond strictly in professional Markdown format. Use the headings:
 # Comparative Analysis Table
