@@ -458,6 +458,14 @@ export async function handleCompletionsRoute(request: Request, env: Env): Promis
  */
 export async function handleSynthesizeRoute(request: Request, env: Env, url: URL): Promise<Response> {
   try {
+    if (url.searchParams.get("clear_cache") === "true") {
+      try {
+        await env.DB.prepare("DELETE FROM earnings_cache").run();
+      } catch (dbErr) {
+        console.error("Failed to purge earnings cache:", dbErr);
+      }
+    }
+
     const tickersParam = url.searchParams.get("tickers");
     if (!tickersParam) {
       return new Response(JSON.stringify({ success: false, error: "Query parameter 'tickers' is required" }), {

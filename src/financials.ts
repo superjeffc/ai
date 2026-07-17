@@ -84,7 +84,13 @@ async function getCikForTicker(ticker: string, env: Env): Promise<string> {
  * Fetches the lightweight submissions index for a given CIK and extracts
  * the unique Accession Number and filing date for the most recent 10-Q or 10-K.
  */
-async function getRecentFilingInfo(cik: string): Promise<{ accessionNumber: string; filingDate: string; submissionsData: any }> {
+async function getRecentFilingInfo(cik: string): Promise<{ 
+  accessionNumber: string; 
+  filingDate: string; 
+  reportDate: string;
+  form: string;
+  submissionsData: any 
+}> {
   const url = `https://data.sec.gov/submissions/CIK${cik}.json`;
   const res = await rateLimitedFetch(url, {
     headers: SEC_HEADERS
@@ -96,7 +102,7 @@ async function getRecentFilingInfo(cik: string): Promise<{ accessionNumber: stri
 
   const data = await res.json() as any;
   const recent = data.filings?.recent;
-  if (!recent || !recent.form || !recent.accessionNumber || !recent.filingDate) {
+  if (!recent || !recent.form || !recent.accessionNumber || !recent.filingDate || !recent.reportDate) {
     throw new Error(`Filing index not available for CIK ${cik}`);
   }
 
@@ -107,6 +113,8 @@ async function getRecentFilingInfo(cik: string): Promise<{ accessionNumber: stri
       return {
         accessionNumber: recent.accessionNumber[i],
         filingDate: recent.filingDate[i],
+        reportDate: recent.reportDate[i],
+        form: formType,
         submissionsData: data
       };
     }
@@ -119,7 +127,12 @@ async function getRecentFilingInfo(cik: string): Promise<{ accessionNumber: stri
  * Fetches XBRL facts for a CIK and extracts Revenue, EPS, Net Income, and Operating Income
  * specifically for the given Accession Number.
  */
-async function getFactsForAccession(cik: string, accessionNumber: string): Promise<string> {
+async function getFactsForAccession(
+  cik: string,
+  accessionNumber: string,
+  reportDate: string,
+  form: string
+): Promise<string> {
   try {
     const url = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
     const res = await rateLimitedFetch(url, {
@@ -130,56 +143,148 @@ async function getFactsForAccession(cik: string, accessionNumber: string): Promi
       return `Unable to fetch SEC XBRL facts: ${res.statusText}`;
     }
 
-    const data = await res.json() as {
-      facts?: Record<string, Record<string, {
-        units?: Record<string, Array<{
-          val: number;
-          accn: string;
-          fy: number;
-          fp: string;
-          form: string;
-          filed: string;
-        }>>;
-      }>>;
-    };
-
+    const data = await res.json() as any;
     const facts = data.facts?.["us-gaap"];
     if (!facts) {
       return "No us-gaap facts found in SEC database.";
     }
 
-    const resultParts: string[] = [];
+    const is10K = form === "10-K";
 
-    // Helper to search concepts in priority order and find a match for the accession number
-    const extractConcept = (conceptNames: string[], label: string) => {
+    // 1. Helper to extract current quarter / year metric (exact duration match)
+    const extractMetric = (conceptNames: string[], instant: boolean = false) => {
       for (const name of conceptNames) {
         const entry = facts[name];
         if (entry && entry.units) {
-          for (const unitKey of Object.keys(entry.units)) {
-            const list = entry.units[unitKey];
-            if (Array.isArray(list)) {
-              const match = list.find((item) => item.accn === accessionNumber);
-              if (match) {
-                resultParts.push(`${label} (${name}): ${match.val.toLocaleString()} ${unitKey} (FY: ${match.fy}, FP: ${match.fp}, Filed: ${match.filed})`);
-                return; // Match found, proceed to next concept label
+          const unitKey = Object.keys(entry.units)[0];
+          const list = entry.units[unitKey];
+          if (Array.isArray(list)) {
+            for (const item of list) {
+              if (item.accn === accessionNumber && item.end === reportDate) {
+                if (instant) {
+                  if (!item.start || item.start === item.end) {
+                    return { val: item.val, concept: name, unit: unitKey, fy: item.fy, fp: item.fp };
+                  }
+                } else {
+                  if (item.start) {
+                    const durationDays = (new Date(item.end).getTime() - new Date(item.start).getTime()) / (1000 * 60 * 60 * 24);
+                    const minDays = is10K ? 340 : 80;
+                    const maxDays = is10K ? 380 : 105;
+                    if (durationDays >= minDays && durationDays <= maxDays) {
+                      return { val: item.val, concept: name, unit: unitKey, fy: item.fy, fp: item.fp };
+                    }
+                  }
+                }
               }
             }
           }
         }
       }
+      return null;
     };
 
-    // Extract core numbers
-    extractConcept(["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "SalesRevenueNet", "SalesRevenueGoodsNet"], "Revenue");
-    extractConcept(["EarningsPerShareDiluted", "EarningsPerShareBasicAndDiluted", "EarningsPerShareBasic"], "EPS");
-    extractConcept(["NetIncomeLoss", "NetIncomeLossAvailableToCommonStockholdersBasic"], "Net Income");
-    extractConcept(["OperatingIncomeLoss"], "Operating Income");
+    // 2. Helper to extract prior-year comparative metric (ends ~365 days before reportDate)
+    const extractPriorMetric = (conceptNames: string[], currentFact: any, instant: boolean = false) => {
+      if (!currentFact) return null;
+      for (const name of conceptNames) {
+        const entry = facts[name];
+        if (entry && entry.units) {
+          const unitKey = Object.keys(entry.units)[0];
+          const list = entry.units[unitKey];
+          if (Array.isArray(list)) {
+            for (const item of list) {
+              if (item.accn === accessionNumber) {
+                const daysDiff = (new Date(reportDate).getTime() - new Date(item.end).getTime()) / (1000 * 60 * 60 * 24);
+                if (daysDiff >= 340 && daysDiff <= 380) {
+                  if (instant) {
+                    if (!item.start || item.start === item.end) {
+                      return { val: item.val, concept: name, unit: unitKey };
+                    }
+                  } else {
+                    if (item.start) {
+                      const durationDays = (new Date(item.end).getTime() - new Date(item.start).getTime()) / (1000 * 60 * 60 * 24);
+                      const minDays = is10K ? 340 : 80;
+                      const maxDays = is10K ? 380 : 105;
+                      if (durationDays >= minDays && durationDays <= maxDays) {
+                        return { val: item.val, concept: name, unit: unitKey };
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return null;
+    };
 
-    if (resultParts.length === 0) {
-      return `No specific financial metrics found matching accession number ${accessionNumber}`;
+    // Extract key metrics
+    const rev = extractMetric(["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "SalesRevenueNet", "SalesRevenueGoodsNet"], false);
+    const priorRev = extractPriorMetric(["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "SalesRevenueNet", "SalesRevenueGoodsNet"], rev, false);
+
+    const netInc = extractMetric(["NetIncomeLoss", "NetIncomeLossAvailableToCommonStockholdersBasic"], false);
+    const priorNetInc = extractPriorMetric(["NetIncomeLoss", "NetIncomeLossAvailableToCommonStockholdersBasic"], netInc, false);
+
+    const eps = extractMetric(["EarningsPerShareDiluted", "EarningsPerShareBasicAndDiluted", "EarningsPerShareBasic"], false);
+    const priorEps = extractPriorMetric(["EarningsPerShareDiluted", "EarningsPerShareBasicAndDiluted", "EarningsPerShareBasic"], eps, false);
+
+    const equity = extractMetric(["StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"], true);
+    const liabilities = extractMetric(["Liabilities", "LiabilitiesAndStockholdersEquity"], true);
+    const ltDebt = extractMetric(["LongTermDebtNoncurrent", "LongTermDebt"], true);
+    const stDebt = extractMetric(["LongTermDebtCurrent", "DebtCurrent", "ShortTermBorrowings", "CommercialPaper"], true);
+
+    const outputParts: string[] = [];
+    const fpStr = rev ? `FY ${rev.fy} ${rev.fp}` : form;
+    outputParts.push(`REPORTING PERIOD: ${fpStr}`);
+
+    if (rev) {
+      let revStr = `Revenue: ${rev.val.toLocaleString()} ${rev.unit}`;
+      if (priorRev) {
+        const growth = ((rev.val - priorRev.val) / priorRev.val) * 100;
+        revStr += ` (Prior Year: ${priorRev.val.toLocaleString()} ${priorRev.unit}, YoY Growth: ${growth.toFixed(2)}%)`;
+      }
+      outputParts.push(revStr);
+    } else {
+      outputParts.push("Revenue: Not found");
     }
 
-    return resultParts.join("\n");
+    if (netInc) {
+      let niStr = `Net Income: ${netInc.val.toLocaleString()} ${netInc.unit}`;
+      if (priorNetInc) {
+        const growth = ((netInc.val - priorNetInc.val) / priorNetInc.val) * 100;
+        niStr += ` (Prior Year: ${priorNetInc.val.toLocaleString()} ${priorNetInc.unit}, YoY Growth: ${growth.toFixed(2)}%)`;
+      }
+      outputParts.push(niStr);
+    } else {
+      outputParts.push("Net Income: Not found");
+    }
+
+    if (eps) {
+      let epsStr = `EPS: ${eps.val} ${eps.unit}`;
+      if (priorEps) {
+        const growth = ((eps.val - priorEps.val) / priorEps.val) * 100;
+        epsStr += ` (Prior Year: ${priorEps.val} ${priorEps.unit}, YoY Growth: ${growth.toFixed(2)}%)`;
+      }
+      outputParts.push(epsStr);
+    } else {
+      outputParts.push("EPS: Not found");
+    }
+
+    if (equity) {
+      outputParts.push(`Stockholders' Equity: ${equity.val.toLocaleString()} ${equity.unit}`);
+      if (liabilities) {
+        outputParts.push(`Total Liabilities: ${liabilities.val.toLocaleString()} ${liabilities.unit}`);
+        outputParts.push(`Liabilities-to-Equity (L/E) Ratio: ${(liabilities.val / equity.val).toFixed(4)}`);
+      }
+      const totalDebt = (ltDebt ? ltDebt.val : 0) + (stDebt ? stDebt.val : 0);
+      outputParts.push(`Total Debt: ${totalDebt.toLocaleString()} ${equity.unit} (Long-term: ${ltDebt ? ltDebt.val.toLocaleString() : 0}, Short-term: ${stDebt ? stDebt.val.toLocaleString() : 0})`);
+      outputParts.push(`Debt-to-Equity (D/E) Ratio: ${(totalDebt / equity.val).toFixed(4)}`);
+    } else {
+      outputParts.push("Balance Sheet Metrics: Stockholders' Equity not found (unable to calculate Debt-to-Equity ratio)");
+    }
+
+    return outputParts.join("\n");
   } catch (err: any) {
     console.error(`Error processing company facts for CIK ${cik}:`, err);
     return `Error parsing SEC facts: ${err.message}`;
@@ -333,7 +438,7 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
     }
 
     // 3. Fallback: Fetch recent filing info from SEC submissions index
-    const { accessionNumber, filingDate, submissionsData } = await getRecentFilingInfo(cik);
+    const { accessionNumber, filingDate, reportDate, form, submissionsData } = await getRecentFilingInfo(cik);
 
     // 4. Precise Cache Check: check if the latest accession number matches the cache
     const cachedSummary = await env.DB.prepare(
@@ -355,7 +460,7 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
 
     // 4. Ingestion & Analysis Pipeline (Cache Miss)
     const [factsText, transcriptText] = await Promise.all([
-      getFactsForAccession(cik, accessionNumber),
+      getFactsForAccession(cik, accessionNumber, reportDate, form),
       fetchEarningCallTranscript(cleanTicker, cik, submissionsData, env)
     ]);
 
