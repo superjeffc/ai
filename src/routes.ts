@@ -606,21 +606,35 @@ export async function handleSynthesizeRoute(request: Request, env: Env, url: URL
       }
 
       if (!synthesis) {
-        synthesis = await runComparativeReduce(results, env);
-
-        try {
-          const maxFilingDate = sortedResults.reduce((max, r) => {
-            return (r.filingDate && r.filingDate > max) ? r.filingDate : max;
-          }, "1970-01-01");
-
-          await env.DB.prepare(
-            "INSERT OR REPLACE INTO earnings_cache (ticker, accession_number, filing_date, summary) VALUES (?1, ?2, ?3, ?4)"
-          )
-            .bind(tickersKey, accessionsKey, maxFilingDate, synthesis)
-            .run();
-        } catch (saveErr) {
-          console.error("Failed to save synthesis to cache:", saveErr);
+        if (env.SEC_QUEUE) {
+          await env.SEC_QUEUE.send({
+            type: "synthesis",
+            tickers: sortedResults.map(r => r.ticker),
+            results: validResults
+          });
+        } else {
+          console.warn("SEC_QUEUE binding is missing; cannot queue synthesis job.");
         }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            status: "synthesizing",
+            data: {
+              summaries: results.reduce((acc, curr) => {
+                acc[curr.ticker] = curr;
+                return acc;
+              }, {} as Record<string, any>),
+              synthesis: null
+            }
+          }),
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*"
+            }
+          }
+        );
       }
     } else {
       synthesis = "No valid ticker summaries were generated to perform comparative synthesis.";

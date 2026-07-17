@@ -250,6 +250,17 @@ export function getHTMLFrontend(): string {
             loading.classList.remove('hidden');
             results.classList.remove('hidden');
             document.getElementById('synth-synthesis-card').classList.add('hidden');
+          } else if (data.status === "synthesizing") {
+            setTimeout(poll, pollInterval);
+            loading.classList.add('hidden');
+            results.classList.remove('hidden');
+            document.getElementById('synth-synthesis-card').classList.remove('hidden');
+            const synthContent = document.getElementById('synth-synthesis-content');
+            synthContent.innerHTML = 
+              '<div class="flex items-center gap-2 text-gray-400 py-4 justify-center">' +
+                '<div class="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>' +
+                '<span class="text-xs text-gray-400">Synthesizing comparative value-investing analysis...</span>' +
+              '</div>';
           } else {
             const synthContent = document.getElementById('synth-synthesis-content');
             synthContent.innerHTML = marked.parse(data.data.synthesis || '');

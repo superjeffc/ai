@@ -1,5 +1,5 @@
 import { Env } from "./types";
-import { synthesizeSingleTicker } from "./financials";
+import { synthesizeSingleTicker, runComparativeReduce } from "./financials";
 import {
   handleFrontendRoute,
   handleHistoryRoute,
@@ -61,12 +61,36 @@ export default {
 
   async queue(batch: any, env: Env): Promise<void> {
     for (const message of batch.messages) {
-      const { ticker } = message.body;
-      try {
-        console.log(`Queue Ingestion: Processing ${ticker}`);
-        await synthesizeSingleTicker(ticker, env);
-      } catch (err: any) {
-        console.error(`Queue consumer failed for ${ticker}:`, err.message);
+      const body = message.body;
+      if (body.type === "synthesis") {
+        const { tickers, results } = body;
+        try {
+          console.log(`Queue Synthesis: Processing synthesis for ${tickers.join(", ")}`);
+          const synthesis = await runComparativeReduce(results, env);
+          
+          const sortedResults = [...results].sort((a, b) => a.ticker.localeCompare(b.ticker));
+          const tickersKey = "SYNTHESIS:" + sortedResults.map(r => r.ticker).join(",");
+          const accessionsKey = sortedResults.map(r => r.accessionNumber || "").join(",");
+          const maxFilingDate = sortedResults.reduce((max, r) => {
+            return (r.filingDate && r.filingDate > max) ? r.filingDate : max;
+          }, "1970-01-01");
+
+          await env.DB.prepare(
+            "INSERT OR REPLACE INTO earnings_cache (ticker, accession_number, filing_date, summary) VALUES (?1, ?2, ?3, ?4)"
+          )
+            .bind(tickersKey, accessionsKey, maxFilingDate, synthesis)
+            .run();
+        } catch (err: any) {
+          console.error(`Queue synthesis failed:`, err.message);
+        }
+      } else {
+        const { ticker } = body;
+        try {
+          console.log(`Queue Ingestion: Processing ${ticker}`);
+          await synthesizeSingleTicker(ticker, env);
+        } catch (err: any) {
+          console.error(`Queue consumer failed for ${ticker}:`, err.message);
+        }
       }
       message.ack();
     }
