@@ -476,9 +476,10 @@ ${factsText}
 SEC 8-K Document Text:
 ${transcriptText}
 
-Please extract:
-1. Exact reported metrics (Revenue & EPS growth rates).
-2. Analyst friction or defensive management language identified in the document.
+Please extract and summarize:
+1. Exact reported income statement metrics (Revenue, Net Income, and EPS with their YoY growth rates).
+2. Extracted balance sheet metrics and calculated ratios (Stockholders' Equity, Total Liabilities, Total Debt, Liabilities-to-Equity (L/E), and Debt-to-Equity (D/E) ratios).
+3. Analyst friction or defensive management language identified in the document.
 
 Format your response in neat Markdown. Keep your analysis concise and high-signal.`;
 
