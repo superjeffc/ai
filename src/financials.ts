@@ -285,6 +285,11 @@ async function getFactsForAccession(
     const cash = extractMetric(["CashAndCashEquivalentsAtCarryingValue", "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"], true);
     const nim = extractMetric(["NetInterestMargin", "InterestMargin"], false);
     const nonInterestIncome = extractMetric(["NoninterestIncome"], false);
+    const assetsHeldInTrust = extractMetric([
+      "AssetsHeldInTrustNoncurrent",
+      "AssetsHeldInTrust",
+      "AssetsHeldInTrustCurrent"
+    ], true);
 
     const grossProfit = extractMetric([
       "GrossProfit",
@@ -400,6 +405,9 @@ async function getFactsForAccession(
     }
     if (nonInterestIncome) {
       outputParts.push(`Non-Interest Income: ${nonInterestIncome.val.toLocaleString()} ${nonInterestIncome.unit}`);
+    }
+    if (assetsHeldInTrust) {
+      outputParts.push(`Capital Held in Trust Account: ${assetsHeldInTrust.val.toLocaleString()} ${assetsHeldInTrust.unit}`);
     }
 
     return outputParts.join("\n");
@@ -590,7 +598,9 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
     const upperSicDesc = cleanSicDesc.toUpperCase();
     const companyName = (submissionsData?.name || "").toUpperCase();
 
-    if (cleanSic === "6798" || upperSicDesc.includes("REAL ESTATE INVESTMENT TRUST") || upperSicDesc.includes("REIT")) {
+    if (cleanSic === "6770" || upperSicDesc.includes("BLANK CHECK") || companyName.includes("ACQUISITION CORP") || companyName.includes("ACQUISITION CORPORATION") || companyName.includes("ACQUISITION")) {
+      sector = "SHELL_SPAC";
+    } else if (cleanSic === "6798" || upperSicDesc.includes("REAL ESTATE INVESTMENT TRUST") || upperSicDesc.includes("REIT")) {
       const isMortgageREIT = 
         upperSicDesc.includes("MORTGAGE") || 
         upperSicDesc.includes("AGENCY") || 
@@ -730,6 +740,7 @@ export async function runComparativeReduce(
   const hasEnergy = validSummaries.some(s => s.summary && (s.summary.includes("DD&A") || s.summary.includes("EBITDAX") || s.summary.includes("depletion") || s.summary.includes("depreciation, depletion")));
   const hasUtility = validSummaries.some(s => s.summary && (s.summary.includes("Regulatory Asset Base") || s.summary.includes("Rate Base")));
   const hasBiotech = validSummaries.some(s => s.summary && (s.summary.includes("Cash Burn Rate") || s.summary.includes("Cash Runway") || s.summary.includes("clinical trial")));
+  const hasShellSpac = validSummaries.some(s => s.summary && (s.summary.includes("SPAC") || s.summary.includes("Blank Check") || s.summary.includes("BAYA") || s.summary.includes("Acquisition Corp") || s.summary.includes("Shell")));
 
 
   let buyList = "";
@@ -779,6 +790,10 @@ export async function runComparativeReduce(
   if (hasBiotech) {
     methodologyRules += REDUCE_SECTOR_RULES.BIOTECH.methodologyRules;
     sectorInstructions += REDUCE_SECTOR_RULES.BIOTECH.sectorInstructions;
+  }
+  if (hasShellSpac) {
+    methodologyRules += REDUCE_SECTOR_RULES.SHELL_SPAC.methodologyRules;
+    sectorInstructions += REDUCE_SECTOR_RULES.SHELL_SPAC.sectorInstructions;
   }
 
   const systemPrompt = getReduceSystemPrompt({

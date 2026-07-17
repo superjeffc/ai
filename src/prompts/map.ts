@@ -54,6 +54,17 @@ export const MAP_SECTOR_RULES: Record<string, MapSectorRules> = {
     userRules: `For STANDARD:
    - Report standard Revenue, Gross Margin, Net Income, EPS, Stockholders' Equity, Total Debt, L/E, D/E ratios, Cash and Equivalents, and Capital Expenditures (CapEx).
    - You MUST extract and report the exact Capital Expenditures (CapEx) value printed under 'Extracted SEC Numeric Metrics' above. Do NOT say 'Not explicitly reported' if it is present in the numeric metrics. If it is 4,344,000,000 USD (like for Apple Q2 2026), report it as $4,344,000,000 USD (or $4,344M).`
+  },
+  SHELL_SPAC: {
+    systemRules: `You are evaluating a Special Purpose Acquisition Company ("SPAC") or shell corporation ("SHELL_SPAC").
+- Traditional operating metrics like Revenue, Gross Margin, and operating profit are non-existent or zero because the company has no business operations.
+- The company's primary asset is the capital raised in its IPO, which is locked in a Trust Account.
+- Identify and report **Capital Held in Trust Account** (typically extracted under 'Capital Held in Trust Account').
+- Note that traditional financial metrics (Revenue, margins, Debt-to-Equity) are Not Applicable (N/A) until a business combination (merger) is completed.`,
+    userRules: `For SHELL_SPAC:
+   - Identify and report **Capital Held in Trust Account** (label it exactly "Capital Held in Trust Account").
+   - Explicitly state that standard operational metrics (like Revenue, Gross Margin, and CapEx) are completely zero/N/A since it is a pre-merger SPAC shell company.
+   - Explain that traditional operational metrics do not apply until a business combination is completed.`
   }
 };
 

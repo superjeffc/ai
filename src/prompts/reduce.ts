@@ -60,6 +60,15 @@ export const REDUCE_SECTOR_RULES: Record<string, ReduceSectorRules> = {
   * Table columns: Cash Balance, Quarterly Burn Rate, Cash Runway (Months).
   * Analysis: Evaluate capital preservation and clinical pipeline milestones.
   * Balanced Investment Case: Focus on pipeline catalysts, funding runway, and share dilution risks.`
+  },
+  SHELL_SPAC: {
+    methodologyRules: `\n- For SHELL/SPAC companies: Focus on Capital Held in Trust Account. Traditional operating metrics (Revenue, Gross Margin, Operating Spread, CapEx) are completely N/A or zero. Do NOT apply traditional checklists or say the absence of revenue makes it challenging to assess the company; instead, note that operational metrics do not apply until a business combination is completed.`,
+    sectorInstructions: `\n- SHELL/SPAC (SHELL_SPAC):
+  * Table columns/rows:
+    - Set standard "Revenue Growth (YoY)", "Gross Margin (%)", and "Capital Expenditures" rows to "N/A (Pre-Merger SPAC)".
+    - Include a dedicated row for **Capital Held in Trust Account**.
+    - For standard "Cash & Equivalents", show the liquid cash balance and distinguish it from the Trust Account assets.
+  * Analysis: State clearly that the company is a blank-check shell corporation whose primary asset is IPO capital held in a Trust Account, and that operational metrics will not apply until a business combination (merger) is completed.`
   }
 };
 
