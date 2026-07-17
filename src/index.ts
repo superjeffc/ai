@@ -2,9 +2,6 @@ import { Env } from "./types";
 import { synthesizeSingleTicker, runComparativeReduce } from "./financials";
 import {
   handleFrontendRoute,
-  handleHistoryRoute,
-  handleChatRoute,
-  handleCompletionsRoute,
   handleSynthesizeRoute
 } from "./routes";
 
@@ -29,26 +26,9 @@ export default {
       userId = crypto.randomUUID();
     }
 
-    const userHistoryKey = `user_history:${userId}`;
-
     // ROUTE 1: Serves the Web UI Layout
     if (url.pathname === "/" && request.method === "GET") {
       return handleFrontendRoute(request, env, userId);
-    }
-
-    // ROUTE 2: Fetches conversation history
-    if (url.pathname === "/api/history" && request.method === "GET") {
-      return handleHistoryRoute(request, env, userHistoryKey, userId);
-    }
-
-    // ROUTE 3: Processes incoming chat/image requests
-    if (url.pathname === "/api/chat" && request.method === "POST") {
-      return handleChatRoute(request, env, ctx, userHistoryKey, userId);
-    }
-
-    // ROUTE 4: OpenAI-Compatible completions
-    if (url.pathname === "/v1/chat/completions" && request.method === "POST") {
-      return handleCompletionsRoute(request, env);
     }
 
     // ROUTE 5: GET /api/synthesize?tickers=AAPL,MSFT,NVDA
