@@ -29,11 +29,42 @@ export function getHTMLFrontend(): string {
       gap: 0.5rem;
       width: 100%;
     }
+    .search-input-wrapper {
+      position: relative;
+      width: 100%;
+      box-sizing: border-box;
+    }
     .search-input {
       width: 100%;
       min-width: 0;
       box-sizing: border-box;
       text-transform: uppercase;
+      padding-right: 2.5rem !important; /* Space for the clear X button */
+    }
+    .clear-input-btn {
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: #9ca3af; /* gray-400 */
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      width: 1.25rem;
+      height: 1.25rem;
+      border-radius: 50%;
+      transition: color 0.15s, background-color 0.15s;
+    }
+    .clear-input-btn:hover {
+      color: #f3f4f6; /* gray-100 */
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+    .clear-input-btn.hidden {
+      display: none;
     }
     .search-button {
       width: 100%;
@@ -45,7 +76,7 @@ export function getHTMLFrontend(): string {
       .search-container {
         flex-direction: row;
       }
-      .search-input {
+      .search-input-wrapper {
         flex: 1;
         width: 0;
       }
@@ -69,7 +100,14 @@ export function getHTMLFrontend(): string {
     <div class="w-full bg-gray-900 border border-gray-800 p-4 rounded-xl mb-4 shrink-0">
       <h2 class="text-sm font-semibold text-gray-300 mb-2">Earnings Synthesizer (SEC Facts vs. Transcript/8-K Filings)</h2>
       <div class="search-container">
-        <input type="text" id="synth-tickers" placeholder="e.g. AAPL, MSFT, NVDA, AMD" value="AAPL, MSFT, NVDA" class="search-input bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-white placeholder-gray-500 outline-none focus:border-gray-700 text-sm">
+        <div class="search-input-wrapper">
+          <input type="text" id="synth-tickers" placeholder="e.g. AAPL, MSFT, NVDA, AMD" value="AAPL, MSFT, NVDA" class="search-input bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-white placeholder-gray-500 outline-none focus:border-gray-700 text-sm">
+          <button type="button" id="clear-tickers-btn" class="clear-input-btn hidden" onclick="clearTickersInput()" aria-label="Clear input">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
         <button onclick="runSynthesis()" class="search-button bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition cursor-pointer flex items-center gap-1.5" id="synth-btn">
           <span>Synthesize</span>
         </button>
@@ -104,14 +142,32 @@ export function getHTMLFrontend(): string {
 
   <script>
     const synthTickersInput = document.getElementById('synth-tickers');
+    const clearBtn = document.getElementById('clear-tickers-btn');
+
+    function updateClearButtonVisibility() {
+      if (synthTickersInput.value.length > 0) {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+      }
+    }
+
+    function clearTickersInput() {
+      synthTickersInput.value = '';
+      updateClearButtonVisibility();
+      synthTickersInput.focus({ preventScroll: true });
+    }
+
     setTimeout(function() {
       synthTickersInput.focus({ preventScroll: true });
       const len = synthTickersInput.value.length;
       synthTickersInput.setSelectionRange(len, len);
+      updateClearButtonVisibility();
     }, 100);
 
     synthTickersInput.addEventListener('input', function(e) {
       synthTickersInput.value = synthTickersInput.value.toUpperCase();
+      updateClearButtonVisibility();
     });
 
     synthTickersInput.addEventListener('keydown', function(e) {
