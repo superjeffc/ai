@@ -56,22 +56,6 @@ export default {
       return handleSynthesizeRoute(request, env, url);
     }
 
-    // ROUTE 6: GET /api/debug
-    if (url.pathname === "/api/debug" && request.method === "GET") {
-      const ticker = url.searchParams.get("ticker") || "AMD";
-      try {
-        const res = await synthesizeSingleTicker(ticker, env);
-        return new Response(JSON.stringify({ success: true, res }), {
-          headers: { "Content-Type": "application/json" }
-        });
-      } catch (err: any) {
-        return new Response(JSON.stringify({ success: false, error: err.message, stack: err.stack }), {
-          status: 500,
-          headers: { "Content-Type": "application/json" }
-        });
-      }
-    }
-
     return new Response("Not Found", { status: 404 });
   },
 
