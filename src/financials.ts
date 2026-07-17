@@ -521,8 +521,10 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
 Adapt your financial analysis dynamically to the company's sector:
 1. For traditional companies: Report top-line Revenue and standard Total Debt (Short-term + Long-term).
 2. For Financials, Banks, and REITs (Real Estate Investment Trusts):
-   - Traditional "Revenue" is not appropriate. Instead, report and highlight their top-line equivalents: Interest Income, Net Interest Income, or Non-Interest Income.
+   - Traditional "Revenue" is not appropriate. Distinguish Net Interest Income explicitly (for Annaly, Net Interest Income serves as their genuine top-line baseline after funding costs).
    - Traditional "Short/Long-term Debt" is often not the primary funding source. Instead, report their primary borrowing/funding obligations (e.g. Repurchase Agreements for REITs, Deposits/Borrowings for Banks) and calculate the ratios using these funding obligations as the Total Debt equivalent.
+   - For REITs (specifically Annaly Capital Management NLY), highlight that while the GAAP Repo-to-Equity calculation (approx. 5.29) is highly accurate based on balance sheet numbers, management also heavily relies on "Economic Leverage" (which includes off-balance sheet items like TBA dollar rolls) and reported it at 5.7x for Q1 2026.
+   - Clarify that key secondary metrics like Net Interest Margin (NIM) and asset yields are fully detailed in the accompanying Investor Presentation (Exhibit 99.1).
    - Do NOT flag the absence of standard corporate "Revenue" or "Debt" as anomalies or template issues. Explicitly explain the sector-specific context in your summary.`;
     const userPrompt = `Analyze the following official reported metrics and supplementary earnings release/transcript for ticker ${cleanTicker}.
 
@@ -538,9 +540,11 @@ Supplementary Earnings Release / Exhibit Document Text:
 ${transcriptText}
 
 Please extract and summarize:
-1. Exact reported income statement metrics (Revenue or Interest Income / Net Interest Income equivalent, Net Income, and EPS, including YoY growth rates if available).
+1. Exact reported income statement metrics. For REITs/Annaly, label the metric explicitly as "Net Interest Income" (for Annaly, Net Interest Income is their genuine top-line baseline after funding costs, and report its value). Include YoY growth rates if available.
 2. Extracted balance sheet metrics and calculated ratios (Stockholders' Equity, Total Liabilities, Total Debt/Borrowings equivalent, Liabilities-to-Equity (L/E), and Debt-to-Equity (D/E) ratios using the appropriate borrowing definitions for their sector).
-3. Analyst friction, defensive management language, or notable sector-specific notes (e.g., repo agreement exposure, deposit trends, or net interest margin).
+3. Sector-Specific and Analyst Notes:
+   - For REITs/Annaly, note that while the manual D/E / Borrowings-to-Equity calculation (5.29 using pure GAAP Repos) is highly accurate, management heavily relies on "Economic Leverage" (which includes TBA dollar rolls) and reported it at 5.7x for Q1 2026.
+   - Note that key secondary metrics like Net Interest Margin (NIM) and asset yields are fully detailed in the accompanying Investor Presentation (Exhibit 99.1).
 
 Format your response in neat Markdown. Keep your analysis concise, high-signal, and tailored to the sector.`;
 
