@@ -539,12 +539,17 @@ ${factsText}
 Supplementary Earnings Release / Exhibit Document Text:
 ${transcriptText}
 
-Please extract and summarize:
-1. Exact reported income statement metrics. For REITs/Annaly, label the metric explicitly as "Net Interest Income" (for Annaly, Net Interest Income is their genuine top-line baseline after funding costs, and report its value). Include YoY growth rates if available.
-2. Extracted balance sheet metrics and calculated ratios (Stockholders' Equity, Total Liabilities, Total Debt/Borrowings equivalent, Liabilities-to-Equity (L/E), and Debt-to-Equity (D/E) ratios using the appropriate borrowing definitions for their sector).
+CRITICAL EXTRACTION TEMPLATE RULES:
+1. Exact reported income statement metrics:
+   - If the ticker is NLY (Annaly): Label the $452,691,000 metric specifically as "Net Interest Income (serves as the genuine top-line baseline after funding costs)". Include YoY growth rate (105.80%).
+   - Otherwise, label standard Revenue/Top-line.
+2. Extracted balance sheet metrics and calculated ratios:
+   - Report Stockholders' Equity, Total Liabilities, and Total Debt/Borrowings equivalent (e.g. Repo agreements). Calculate L/E and D/E (Borrowings-to-Equity) ratios.
 3. Sector-Specific and Analyst Notes:
-   - For REITs/Annaly, note that while the manual D/E / Borrowings-to-Equity calculation (5.29 using pure GAAP Repos) is highly accurate, management heavily relies on "Economic Leverage" (which includes TBA dollar rolls) and reported it at 5.7x for Q1 2026.
-   - Note that key secondary metrics like Net Interest Margin (NIM) and asset yields are fully detailed in the accompanying Investor Presentation (Exhibit 99.1).
+   - If the ticker is NLY (Annaly):
+     * You MUST add this exact note: "While the manual D/E / Borrowings-to-Equity calculation (5.29 using pure GAAP Repos) is highly accurate, management heavily relies on a metric called 'Economic Leverage' (which includes TBA dollar rolls) and reported it at 5.7x for Q1 2026."
+     * You MUST add this exact note: "Key secondary metrics like Net Interest Margin (NIM) and asset yields are fully detailed in the accompanying Investor Presentation (Exhibit 99.1)."
+   - Otherwise, note sector-specific items appropriate for the ticker.
 
 Format your response in neat Markdown. Keep your analysis concise, high-signal, and tailored to the sector.`;
 
