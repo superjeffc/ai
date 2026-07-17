@@ -628,7 +628,7 @@ CRITICAL EXTRACTION TEMPLATE RULES FOR SECTOR: ${sector}
 5. For BIOTECH:
    - Identify Cash and Cash Equivalents, Cash Burn Rate, and Cash Runway. State that Revenue, margins, and P/E are N/A. Focus on clinical trial capital runway.
 6. For STANDARD:
-   - Report standard Revenue, Net Income, EPS, Stockholders' Equity, Total Debt, L/E, and D/E ratios.
+   - Report standard Revenue, Net Income, EPS, Stockholders' Equity, Total Debt, L/E, D/E ratios, Cash and Equivalents, and Capital Expenditures (CapEx).
 
 Format your response in neat Markdown. Keep your analysis concise, high-signal, and tailored to the sector.`;
 
