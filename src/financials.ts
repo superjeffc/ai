@@ -413,7 +413,7 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
 
     // 2. Fast cache check: if a report was filed within the last 80 days, skip SEC API lookup
     const recentCached = await env.DB.prepare(
-      "SELECT accession_number, filing_date, summary FROM earnings_cache WHERE ticker = ?1 ORDER BY filing_date DESC LIMIT 1"
+      "SELECT accession_number, filing_date, summary FROM earnings_cache WHERE ticker = ?1 AND summary != 'PENDING' ORDER BY filing_date DESC LIMIT 1"
     )
       .bind(cleanTicker)
       .first<{ accession_number: string; filing_date: string; summary: string }>();
