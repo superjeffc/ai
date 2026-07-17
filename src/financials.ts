@@ -588,8 +588,24 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
 
     let sector = "STANDARD";
     const upperSicDesc = cleanSicDesc.toUpperCase();
+    const companyName = (submissionsData?.name || "").toUpperCase();
+
     if (cleanSic === "6798" || upperSicDesc.includes("REAL ESTATE INVESTMENT TRUST") || upperSicDesc.includes("REIT")) {
-      sector = "REIT";
+      const isMortgageREIT = 
+        upperSicDesc.includes("MORTGAGE") || 
+        upperSicDesc.includes("AGENCY") || 
+        upperSicDesc.includes("REPURCHASE") || 
+        companyName.includes("MORTGAGE") || 
+        companyName.includes("AGENCY") || 
+        companyName.includes("REPURCHASE") || 
+        companyName.includes("MBS") ||
+        companyName.includes("CAPITAL") ||
+        companyName.includes("TRUST") ||
+        factsText.includes("Repurchase Agreements (Repo obligations)");
+
+      if (isMortgageREIT) {
+        sector = "REIT";
+      }
     } else if (
       cleanSic.startsWith("60") || 
       cleanSic.startsWith("61") || 
