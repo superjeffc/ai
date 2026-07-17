@@ -464,24 +464,33 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
       fetchEarningCallTranscript(cleanTicker, cik, submissionsData, env)
     ]);
 
-    const systemPrompt = "You are a financial analyst. Your role is to cross-examine SEC numeric filings against 8-K document text to synthesize an earnings summary.";
-    const userPrompt = `Analyze the following official reported metrics and SEC 8-K document for ticker ${cleanTicker}.
+    const systemPrompt = `You are a professional financial analyst. Your role is to synthesize a high-signal earnings summary by cross-examining SEC numeric filings (Form 10-Q or 10-K) against the supplementary earnings release or transcript text (often filed as an 8-K exhibit).
 
+Adapt your financial analysis dynamically to the company's sector:
+1. For traditional companies: Report top-line Revenue and standard Total Debt (Short-term + Long-term).
+2. For Financials, Banks, and REITs (Real Estate Investment Trusts):
+   - Traditional "Revenue" is not appropriate. Instead, report and highlight their top-line equivalents: Interest Income, Net Interest Income, or Non-Interest Income.
+   - Traditional "Short/Long-term Debt" is often not the primary funding source. Instead, report their primary borrowing/funding obligations (e.g. Repurchase Agreements for REITs, Deposits/Borrowings for Banks) and calculate the ratios using these funding obligations as the Total Debt equivalent.
+   - Do NOT flag the absence of standard corporate "Revenue" or "Debt" as anomalies or template issues. Explicitly explain the sector-specific context in your summary.`;
+    const userPrompt = `Analyze the following official reported metrics and supplementary earnings release/transcript for ticker ${cleanTicker}.
+
+COMPANY TICKER: ${cleanTicker}
+FILING TYPE: Form ${form}
 SEC ACCESSION: ${accessionNumber}
 FILING DATE: ${filingDate}
 
-Extracted SEC Metrics:
+Extracted SEC Numeric Metrics:
 ${factsText}
 
-SEC 8-K Document Text:
+Supplementary Earnings Release / Exhibit Document Text:
 ${transcriptText}
 
 Please extract and summarize:
-1. Exact reported income statement metrics (Revenue, Net Income, and EPS with their YoY growth rates).
-2. Extracted balance sheet metrics and calculated ratios (Stockholders' Equity, Total Liabilities, Total Debt, Liabilities-to-Equity (L/E), and Debt-to-Equity (D/E) ratios).
-3. Analyst friction or defensive management language identified in the document.
+1. Exact reported income statement metrics (Revenue or Interest Income / Net Interest Income equivalent, Net Income, and EPS, including YoY growth rates if available).
+2. Extracted balance sheet metrics and calculated ratios (Stockholders' Equity, Total Liabilities, Total Debt/Borrowings equivalent, Liabilities-to-Equity (L/E), and Debt-to-Equity (D/E) ratios using the appropriate borrowing definitions for their sector).
+3. Analyst friction, defensive management language, or notable sector-specific notes (e.g., repo agreement exposure, deposit trends, or net interest margin).
 
-Format your response in neat Markdown. Keep your analysis concise and high-signal.`;
+Format your response in neat Markdown. Keep your analysis concise, high-signal, and tailored to the sector.`;
 
     const modelName = "@cf/meta/llama-3.1-8b-instruct-fp8";
     const aiResult = await env.AI.run(modelName, {
