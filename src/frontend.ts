@@ -112,7 +112,7 @@ export function getHTMLFrontend(): string {
           <span>Synthesize</span>
         </button>
       </div>
-      <p class="text-xs text-gray-500 mt-2">Analyzes up to 4 comma-separated tickers. Implements compliant SEC submissions checking, D1 caching, and concurrent cross-examination.</p>
+      <p class="text-xs text-gray-500 mt-2">Analyzes up to 4 comma-separated tickers.</p>
     </div>
 
     <div id="synth-results" class="flex-1 overflow-y-auto space-y-4 pr-1 hidden">
