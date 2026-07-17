@@ -220,8 +220,20 @@ async function getFactsForAccession(
     };
 
     // Extract key metrics
-    const rev = extractMetric(["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "SalesRevenueNet", "SalesRevenueGoodsNet"], false);
-    const priorRev = extractPriorMetric(["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "SalesRevenueNet", "SalesRevenueGoodsNet"], rev, false);
+    const revenueConcepts = [
+      "Revenues",
+      "RevenueFromContractWithCustomerExcludingAssessedTax",
+      "SalesRevenueNet",
+      "SalesRevenueGoodsNet",
+      "InterestAndDividendIncomeSecurities",
+      "InterestIncomeExpenseNet",
+      "InterestIncomeExpenseAfterProvisionForLoanLosses",
+      "InterestIncomeOperating",
+      "NetInterestIncome",
+      "NoninterestIncome"
+    ];
+    const rev = extractMetric(revenueConcepts, false);
+    const priorRev = extractPriorMetric(revenueConcepts, rev, false);
 
     const netInc = extractMetric(["NetIncomeLoss", "NetIncomeLossAvailableToCommonStockholdersBasic"], false);
     const priorNetInc = extractPriorMetric(["NetIncomeLoss", "NetIncomeLossAvailableToCommonStockholdersBasic"], netInc, false);
@@ -234,19 +246,37 @@ async function getFactsForAccession(
     const ltDebt = extractMetric(["LongTermDebtNoncurrent", "LongTermDebt"], true);
     const stDebt = extractMetric(["LongTermDebtCurrent", "DebtCurrent", "ShortTermBorrowings", "CommercialPaper"], true);
 
+    const repoAgreements = extractMetric([
+      "SecuritiesSoldUnderAgreementsToRepurchase",
+      "SecuritiesSoldUnderAgreementsToRepurchaseFairValueOption",
+      "SecuritiesLoanedOrSoldUnderAgreementsToRepurchase",
+      "RepurchaseAgreements"
+    ], true);
+
+    const deposits = extractMetric([
+      "Deposits",
+      "DomesticDeposits",
+      "ForeignDeposits"
+    ], true);
+
+    const bankBorrowings = extractMetric([
+      "FederalHomeLoanBankBorrowings",
+      "FHLBBorrowings"
+    ], true);
+
     const outputParts: string[] = [];
     const fpStr = rev ? `FY ${rev.fy} ${rev.fp}` : form;
     outputParts.push(`REPORTING PERIOD: ${fpStr}`);
 
     if (rev) {
-      let revStr = `Revenue: ${rev.val.toLocaleString()} ${rev.unit}`;
+      let revStr = `Revenue / Top-line (Concept: ${rev.concept}): ${rev.val.toLocaleString()} ${rev.unit}`;
       if (priorRev) {
         const growth = ((rev.val - priorRev.val) / priorRev.val) * 100;
         revStr += ` (Prior Year: ${priorRev.val.toLocaleString()} ${priorRev.unit}, YoY Growth: ${growth.toFixed(2)}%)`;
       }
       outputParts.push(revStr);
     } else {
-      outputParts.push("Revenue: Not found");
+      outputParts.push("Revenue / Top-line: Not found");
     }
 
     if (netInc) {
@@ -277,11 +307,29 @@ async function getFactsForAccession(
         outputParts.push(`Total Liabilities: ${liabilities.val.toLocaleString()} ${liabilities.unit}`);
         outputParts.push(`Liabilities-to-Equity (L/E) Ratio: ${(liabilities.val / equity.val).toFixed(4)}`);
       }
-      const totalDebt = (ltDebt ? ltDebt.val : 0) + (stDebt ? stDebt.val : 0);
-      outputParts.push(`Total Debt: ${totalDebt.toLocaleString()} ${equity.unit} (Long-term: ${ltDebt ? ltDebt.val.toLocaleString() : 0}, Short-term: ${stDebt ? stDebt.val.toLocaleString() : 0})`);
-      outputParts.push(`Debt-to-Equity (D/E) Ratio: ${(totalDebt / equity.val).toFixed(4)}`);
+      
+      if (repoAgreements) {
+        outputParts.push(`Repurchase Agreements (Repo obligations): ${repoAgreements.val.toLocaleString()} ${repoAgreements.unit}`);
+      }
+      if (deposits) {
+        outputParts.push(`Customer Deposits (Bank obligations): ${deposits.val.toLocaleString()} ${deposits.unit}`);
+      }
+      if (bankBorrowings) {
+        outputParts.push(`FHLB / Bank Borrowings: ${bankBorrowings.val.toLocaleString()} ${bankBorrowings.unit}`);
+      }
+
+      const standardDebt = (ltDebt ? ltDebt.val : 0) + (stDebt ? stDebt.val : 0);
+      const repoVal = repoAgreements ? repoAgreements.val : 0;
+      const depositVal = deposits ? deposits.val : 0;
+      const bankBorrowingVal = bankBorrowings ? bankBorrowings.val : 0;
+      const totalObligations = standardDebt + repoVal + depositVal + bankBorrowingVal;
+
+      outputParts.push(`Total Debt (Standard): ${standardDebt.toLocaleString()} ${equity.unit} (Long-term: ${ltDebt ? ltDebt.val.toLocaleString() : 0}, Short-term: ${stDebt ? stDebt.val.toLocaleString() : 0})`);
+      outputParts.push(`Total Borrowings & Sector Obligations: ${totalObligations.toLocaleString()} ${equity.unit} (Standard Debt + Repos + Deposits + FHLB if present)`);
+      outputParts.push(`Debt-to-Equity (D/E) Ratio (Standard): ${(standardDebt / equity.val).toFixed(4)}`);
+      outputParts.push(`Borrowings-to-Equity Ratio (Total Sector Obligations): ${(totalObligations / equity.val).toFixed(4)}`);
     } else {
-      outputParts.push("Balance Sheet Metrics: Stockholders' Equity not found (unable to calculate Debt-to-Equity ratio)");
+      outputParts.push("Balance Sheet Metrics: Stockholders' Equity not found (unable to calculate Debt-to-Equity ratios)");
     }
 
     return outputParts.join("\n");
