@@ -179,6 +179,12 @@ export function getHTMLFrontend(): string {
       const tickersVal = synthTickersInput.value.trim();
       if (!tickersVal) return;
 
+      const tickersList = tickersVal.split(',').map(function(t) { return t.trim().toUpperCase(); }).filter(Boolean);
+      if (tickersList.length > 4) {
+        alert("Maximum of 4 tickers can be analyzed at a time.");
+        return;
+      }
+
       const btn = document.getElementById('synth-btn');
       const placeholder = document.getElementById('synth-placeholder');
       const loading = document.getElementById('synth-loading');
@@ -191,7 +197,6 @@ export function getHTMLFrontend(): string {
       results.classList.add('hidden');
       loading.classList.remove('hidden');
 
-      const tickersList = tickersVal.split(',').map(function(t) { return t.trim().toUpperCase(); }).filter(Boolean);
       const pollInterval = 3000;
 
       async function poll() {

@@ -474,12 +474,19 @@ export async function handleSynthesizeRoute(request: Request, env: Env, url: URL
       });
     }
 
-    // Limit concurrency and protect memory by slicing to max 4 tickers
-    const tickers = tickersParam
+    const rawTickers = tickersParam
       .split(",")
       .map(t => t.trim().toUpperCase())
-      .filter(Boolean)
-      .slice(0, 4);
+      .filter(Boolean);
+
+    if (rawTickers.length > 4) {
+      return new Response(JSON.stringify({ success: false, error: "Maximum of 4 tickers can be analyzed at a time." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    const tickers = rawTickers;
 
     if (tickers.length === 0) {
       return new Response(JSON.stringify({ success: false, error: "No valid tickers provided" }), {
