@@ -566,13 +566,15 @@ export async function handleSynthesizeRoute(request: Request, env: Env, url: URL
       })
     );
 
-    // If there are missing reports, push jobs to background queue
-    if (missingTickers.length > 0) {
-      if (env.SEC_QUEUE) {
+    // If there are missing reports or any are still ingesting, return processing
+    const isAnyIngesting = results.some(r => r.error === "Ingesting..." || r.summary === "PENDING");
+
+    if (missingTickers.length > 0 || isAnyIngesting) {
+      if (env.SEC_QUEUE && missingTickers.length > 0) {
         for (const m of missingTickers) {
           await env.SEC_QUEUE.send({ ticker: m.ticker });
         }
-      } else {
+      } else if (!env.SEC_QUEUE && missingTickers.length > 0) {
         console.warn("SEC_QUEUE binding is missing; cannot queue ingestion job.");
       }
 
