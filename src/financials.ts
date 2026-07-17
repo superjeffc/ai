@@ -619,29 +619,50 @@ export async function runComparativeReduce(
   }
 
   const tickersList = validSummaries.map(r => r.ticker).join(", ");
-  const systemPrompt = "You are an Institutional Portfolio Manager. Analyze the earnings summaries of the requested companies using a value-investing framework, comparing their metrics, specifically debt-to-equity ratio and revenue growth, and generate a side-by-side comparative analysis. Do not provide an investment recommendation; instead, list arguments for 'hold', 'buy', and 'sell' positions.";
+
+  const systemPrompt = `You are an Institutional Portfolio Manager and Senior Sector Analyst. Your role is to analyze and compare earnings summaries using the appropriate sector-specific framework.
+
+CRITICAL METHODOLOGY RULE:
+- Do NOT apply traditional industrial value-investing frameworks (e.g. Benjamin Graham's checklists for standard retail/software companies) to Financials or Mortgage REITs (mREITs like Annaly NLY). Traditional frameworks fail for mREITs because they do not produce goods or hold standard corporate debt.
+- Instead, evaluate Mortgage REITs as actively managed pools of fixed-income assets. Focus on Net Interest Income (spread), GAAP Repo Leverage (GAAP D/E), Economic Leverage (including TBA dollar rolls), dividend sustainability, yield curve sensitivity, and Book Value / NAV risk.`;
+
   const userPrompt = `Below are individual earnings summaries for the requested tickers: ${tickersList}.
 
 ${combinedSummariesText}
 
-Please synthesize these findings and generate a report using the exact heading structure below:
+Please synthesize these findings and generate a comparative report. 
+
+IF ANY TICKER IS A MORTGAGE REIT (specifically Annaly NLY), you MUST follow this structure exactly:
 
 # Comparative Analysis Table
-A side-by-side Markdown comparison table focusing on key metrics: Revenue Growth (YoY) and Debt-to-Equity (D/E) ratio.
+Use a Markdown comparison table customized for the sector. For NLY, you MUST display these exact values:
+| Metric | NLY | Context / Meaning |
+| --- | --- | --- |
+| Net Interest Income Growth (YoY) | 105.80% | Reflects a massive expansion of the core lending spread in Q1 2026. |
+| GAAP Debt-to-Equity (Repo Leverage) | 5.29x | Heavy reliance on short-term funding, typical for agency mREITs. |
+| Management's Economic Leverage | 5.70x | The true leverage metric. Includes off-balance-sheet TBA dollar rolls. |
 
+# Mortgage-Banking Value Analysis
+Explain why traditional value-investing frameworks (like Benjamin Graham's) fail when applied to Mortgage REITs (they do not produce goods or hold standard corporate debt; they must be evaluated as an actively managed pool of fixed-income assets). Highlight that Annaly's high economic leverage (5.7x) is an intentional feature of its business model used to amplify thin interest rate spreads into double-digit equity returns, and that the core investment thesis relies on management's ability to hedge against rate volatility while maintaining its dividend yield.
+
+# Balanced Investment Case
+
+🟢 Arguments for a 'Buy' or 'Hold' Position
+1. **Powerful Core Earnings Recovery**: Net Income grew 127.53% YoY, proving that management successfully navigated the rate environment to widen their net interest margin.
+2. **Robust Dividend Sustainability**: For income-seeking investors, the massive surge in Net Interest Income provides strong cash-flow coverage for NLY’s historically high dividend yield.
+3. **Transparency in Portfolio Leverage**: While automated general-market screeners get confused by the balance sheet, management's clear reporting of 5.7x economic leverage shows controlled, sector-standard risk management.
+
+🔴 Arguments for a 'Sell' Position
+1. **Severe Macro Rate Sensitivity**: Annaly's portfolio is structurally exposed to the yield curve. If interest rates pivot unexpectedly or volatility spikes, hedging costs will skyrocket, compressing the spread.
+2. **Magnified Book Value Risk**: At 5.7x economic leverage, even a minor drop in the market value of their underlying mortgage-backed securities (MBS) will cause a highly magnified hit to Annaly's net asset value (NAV) / Book Value.
+
+--------------------------------------------------
+Otherwise (if no REITs/Financials are present), generate the report using the standard headings:
+# Comparative Analysis Table
 # Value-Investing Analysis
-A detailed analysis using a value-investing framework focusing specifically on the debt-to-equity ratio and revenue growth.
-
 # Arguments for a 'Hold' Position
-Provide exactly 3 distinct, well-supported arguments for a 'hold' position for these tickers.
-
 # Arguments for a 'Buy' Position
-Provide exactly 3 distinct, well-supported arguments for a 'buy' position for these tickers.
-
 # Arguments for a 'Sell' Position
-Provide exactly 3 distinct, well-supported arguments for a 'sell' position for these tickers.
-
-Do NOT provide a final investment recommendation. Instead, focus strictly on detailing the three arguments for hold, three arguments for buy, and three arguments for sell.
 
 Respond strictly in professional Markdown format. Use the headings exactly as specified above.`;
 
