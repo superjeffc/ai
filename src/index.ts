@@ -31,7 +31,7 @@ export default {
       return handleFrontendRoute(request, env, userId);
     }
 
-    // ROUTE 5: GET /api/synthesize?tickers=AAPL,MSFT,NVDA
+    // ROUTE 2: GET /api/synthesize?tickers=AAPL,MSFT,NVDA
     if (url.pathname === "/api/synthesize" && request.method === "GET") {
       return handleSynthesizeRoute(request, env, url);
     }
