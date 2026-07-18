@@ -87,6 +87,26 @@ async function fetchStockPrice(ticker: string): Promise<number | null> {
   return null;
 }
 
+function isValidSummary(summary: string): boolean {
+  if (!summary) return false;
+  const trimmed = summary.trim();
+  
+  // Reject status update statements
+  const lower = trimmed.toLowerCase();
+  if (lower.includes("waiting for") && lower.includes("task-")) return false;
+  if (lower.includes("search task") && lower.includes("locate")) return false;
+  if (lower.includes("once the search results are returned")) return false;
+  
+  // A valid earnings summary is long and detailed
+  if (trimmed.length < 200) return false;
+  
+  // A valid summary should have some standard markdown structure
+  const hasMarkdownHeader = trimmed.startsWith("#") || trimmed.includes("\n#") || trimmed.includes("###");
+  if (!hasMarkdownHeader) return false;
+
+  return true;
+}
+
 /**
  * Translates ticker to a 10-digit zero-padded CIK using a local cache check
  * and fallback to the SEC company_tickers dictionary.
@@ -1079,6 +1099,10 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
     });
 
     const summary = await callAgyModel(systemPrompt, userPrompt, env);
+
+    if (!isValidSummary(summary)) {
+      throw new Error(`AGY model returned an invalid or incomplete summary: "${summary.substring(0, 150)}..."`);
+    }
 
     // 5. Store in D1 Cache
     try {
