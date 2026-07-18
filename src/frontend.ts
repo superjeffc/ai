@@ -314,7 +314,7 @@ export function getHTMLFrontend(): string {
             const btn = document.createElement('button');
             btn.className = "text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1.5 rounded-lg border border-gray-700 transition cursor-pointer font-semibold uppercase shrink-0";
             btn.textContent = ticker;
-            btn.onclick = () => scrollToElement(`ticker-card-${ticker}`);
+            btn.onclick = () => scrollToElement('ticker-card-' + ticker);
             jumpLinks.appendChild(btn);
           }
           
@@ -323,7 +323,7 @@ export function getHTMLFrontend(): string {
             const info = summaries[ticker];
             if (!info) continue;
             const card = document.createElement('div');
-            card.id = `ticker-card-${ticker}`;
+            card.id = 'ticker-card-' + ticker;
             card.className = "bg-gray-900 border border-gray-800 p-4 rounded-xl flex flex-col";
             
             if (info.error) {
