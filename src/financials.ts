@@ -132,7 +132,7 @@ export async function getRecentFilingInfo(cik: string): Promise<{
 /**
  * Fetches XBRL facts for a CIK and extracts Revenue, EPS, Net Income, and
  */
-async function getFactsForAccession(
+export async function getFactsForAccession(
   cik: string,
   accessionNumber: string,
   reportDate: string,
@@ -536,7 +536,7 @@ function cleanHtml(html: string): string {
 /**
  * Fetches the earnings details from the most recent relevant 8-K filing on SEC EDGAR.
  */
-async function fetchEarningCallTranscript(ticker: string, cik: string, submissionsData: any, env: Env): Promise<string> {
+export async function fetchEarningCallTranscript(ticker: string, cik: string, submissionsData: any, targetFilingDate: string, env: Env): Promise<string> {
   try {
     const recent = submissionsData?.filings?.recent;
     if (!recent || !recent.form || !recent.accessionNumber || !recent.primaryDocument) {
@@ -546,17 +546,39 @@ async function fetchEarningCallTranscript(ticker: string, cik: string, submissio
     // 1. Filter Logic: look for recent 8-K filings with Item 2.02 (highly preferred for earnings)
     let recent8K: { accessionNumber: string; filingDate: string; primaryDocument: string } | null = null;
     
-    // First pass: scan for Item 2.02
+    // First pass: scan for Item 2.02 within 10 days of targetFilingDate to align the correct quarter's earnings release
+    const targetTime = new Date(targetFilingDate).getTime();
     for (let i = 0; i < recent.form.length; i++) {
       if (recent.form[i] === "8-K") {
-        const items = recent.items?.[i] || "";
-        if (items.includes("2.02")) {
-          recent8K = {
-            accessionNumber: recent.accessionNumber[i],
-            filingDate: recent.filingDate[i],
-            primaryDocument: recent.primaryDocument[i]
-          };
-          break;
+        const filingTime = new Date(recent.filingDate[i]).getTime();
+        const diffDays = Math.abs(targetTime - filingTime) / (1000 * 60 * 60 * 24);
+        if (diffDays <= 10) {
+          const items = recent.items?.[i] || "";
+          if (items.includes("2.02")) {
+            recent8K = {
+              accessionNumber: recent.accessionNumber[i],
+              filingDate: recent.filingDate[i],
+              primaryDocument: recent.primaryDocument[i]
+            };
+            break;
+          }
+        }
+      }
+    }
+
+    // Second pass: scan for Item 2.02 (without date match) as fallback
+    if (!recent8K) {
+      for (let i = 0; i < recent.form.length; i++) {
+        if (recent.form[i] === "8-K") {
+          const items = recent.items?.[i] || "";
+          if (items.includes("2.02")) {
+            recent8K = {
+              accessionNumber: recent.accessionNumber[i],
+              filingDate: recent.filingDate[i],
+              primaryDocument: recent.primaryDocument[i]
+            };
+            break;
+          }
         }
       }
     }
@@ -712,7 +734,7 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
     // 4. Ingestion & Analysis Pipeline (Cache Miss)
     const [factsText, transcriptText] = await Promise.all([
       getFactsForAccession(cik, accessionNumber, reportDate, form, sic || "", sicDescription || "", submissionsData?.name || ""),
-      fetchEarningCallTranscript(cleanTicker, cik, submissionsData, env)
+      fetchEarningCallTranscript(cleanTicker, cik, submissionsData, filingDate, env)
     ]);
 
     const cleanSic = sic || "";
