@@ -136,6 +136,7 @@ window.tickerSummaries = {};
       btn.classList.add('opacity-50', 'cursor-not-allowed');
       placeholder.classList.add('hidden');
       results.classList.add('hidden');
+      results.scrollTop = 0;
       loading.classList.remove('hidden');
       document.getElementById('synth-jump-bar').classList.add('hidden');
 
@@ -218,7 +219,7 @@ window.tickerSummaries = {};
 
           if (data.status !== "processing") {
             const compBtn = document.createElement('button');
-            compBtn.className = "text-xs bg-blue-950/40 hover:bg-blue-900/50 text-blue-300 px-3 py-1.5 rounded-lg border border-blue-900/50 transition cursor-pointer font-semibold shrink-0";
+            compBtn.className = "text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1.5 rounded-lg border border-gray-700 transition cursor-pointer font-semibold shrink-0";
             compBtn.textContent = "Comparison";
             compBtn.onclick = () => scrollToElement('synth-synthesis-card');
             jumpLinks.appendChild(compBtn);
