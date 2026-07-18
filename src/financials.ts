@@ -24,7 +24,10 @@ async function rateLimitedFetch(url: string, options: RequestInit = {}): Promise
 }
 
 async function callAgyModel(systemPrompt: string, userPrompt: string, env: Env): Promise<string> {
-  const secretToken = env.API_SECRET || "kite-vscode-secret-9942";
+  const secretToken = env.API_SECRET;
+  if (!secretToken) {
+    throw new Error("Missing API_SECRET binding. Please configure API_SECRET as a secure Wrangler secret.");
+  }
   console.log(`Calling AGY bridge at https://agy.superjeffc.com/execute (System prompt: ${systemPrompt.length} chars, User prompt: ${userPrompt.length} chars)`);
   const startTime = Date.now();
   const response = await fetch("https://agy.superjeffc.com/execute", {
