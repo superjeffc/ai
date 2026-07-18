@@ -4,6 +4,7 @@ import {
   handleFrontendRoute,
   handleSynthesizeRoute
 } from "./routes";
+import { syncLatestFilings } from "./sync";
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -95,5 +96,9 @@ export default {
       }
       message.ack();
     }
+  },
+
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(syncLatestFilings(env));
   }
 };

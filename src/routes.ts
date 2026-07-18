@@ -84,35 +84,54 @@ export async function handleSynthesizeRoute(request: Request, env: Env, url: URL
         try {
           const cik = await getCikForTicker(ticker, env);
           
-          // 1. Fast Cache Check: check D1 for any filing within last 80 days
-          const recentCached = await env.DB.prepare(
-            "SELECT accession_number, filing_date, summary FROM earnings_cache WHERE ticker = ?1 AND summary != 'PENDING' ORDER BY filing_date DESC LIMIT 1"
-          )
-            .bind(ticker)
-            .first<{ accession_number: string; filing_date: string; summary: string }>();
+          let info: { accessionNumber: string; filingDate: string; form: string } | null = null;
 
-          if (recentCached && recentCached.filing_date) {
-            const filingDateMs = new Date(recentCached.filing_date).getTime();
-            if (!isNaN(filingDateMs)) {
-              const ageInDays = (Date.now() - filingDateMs) / (1000 * 60 * 60 * 24);
-              if (ageInDays < 80) {
-                results.push({
-                  ticker,
-                  cik,
-                  accessionNumber: recentCached.accession_number,
-                  filingDate: recentCached.filing_date,
-                  summary: recentCached.summary,
-                  cached: true
-                });
-                return;
+          // 1. Check local D1 latest_filings cache first (unless clear_cache is requested)
+          const useCache = url.searchParams.get("clear_cache") !== "true";
+          if (useCache) {
+            const cachedFiling = await env.DB.prepare(
+              "SELECT accession_number, filing_date, form, updated_at FROM latest_filings WHERE ticker = ?1"
+            )
+              .bind(ticker)
+              .first<{ accession_number: string; filing_date: string; form: string; updated_at: string }>();
+
+            if (cachedFiling) {
+              const updatedAtMs = new Date(cachedFiling.updated_at).getTime();
+              const ageInMs = Date.now() - (isNaN(updatedAtMs) ? 0 : updatedAtMs);
+              const oneDayMs = 24 * 60 * 60 * 1000;
+
+              if (ageInMs < oneDayMs) {
+                info = {
+                  accessionNumber: cachedFiling.accession_number,
+                  filingDate: cachedFiling.filing_date,
+                  form: cachedFiling.form
+                };
               }
             }
           }
 
-          // 2. Fetch Latest Metadata from SEC to verify exact accession alignment
-          const info = await getRecentFilingInfo(cik);
-          
-          // 3. Exact Accession Cache Check
+          // 2. Fetch from SEC if not found in D1 latest_filings or if it has expired
+          if (!info) {
+            const secInfo = await getRecentFilingInfo(cik);
+            info = {
+              accessionNumber: secInfo.accessionNumber,
+              filingDate: secInfo.filingDate,
+              form: secInfo.form
+            };
+
+            // Save to D1 latest_filings for future requests
+            try {
+              await env.DB.prepare(
+                "INSERT OR REPLACE INTO latest_filings (ticker, cik, accession_number, filing_date, form, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, CURRENT_TIMESTAMP)"
+              )
+                .bind(ticker, cik, info.accessionNumber, info.filingDate, info.form)
+                .run();
+            } catch (dbErr) {
+              console.error(`Failed to update latest_filings for ${ticker}:`, dbErr);
+            }
+          }
+
+          // 3. Check if we already have the summary for this specific accession
           const cachedSummary = await env.DB.prepare(
             "SELECT summary FROM earnings_cache WHERE ticker = ?1 AND accession_number = ?2"
           )

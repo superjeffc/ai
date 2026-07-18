@@ -39,5 +39,10 @@
         "max_concurrency": 4
       }
     ]
+  },
+  "triggers": {
+    "crons": [
+      "0 * * * *"
+    ]
   }
 }
