@@ -209,8 +209,15 @@ export function getHTMLFrontend(): string {
 
     function scrollToElement(id) {
       const el = document.getElementById(id);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const container = document.getElementById('synth-results');
+      if (el && container) {
+        const containerRect = container.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        const scrollTarget = container.scrollTop + (elRect.top - containerRect.top) - 12;
+        container.scrollTo({
+          top: scrollTarget,
+          behavior: 'smooth'
+        });
       }
     }
 
