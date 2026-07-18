@@ -321,11 +321,11 @@ export function getHTMLFrontend(): string {
                 '<div class="flex justify-between items-center border-b border-gray-800 pb-2 mb-2">' +
                   '<h4 class="font-bold text-white text-base">' + ticker + '</h4>' +
                   '<div class="flex gap-2">' +
-                    '<button onclick="copyTickerSummary(\'' + ticker + '\', this)" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2 py-1 rounded transition flex items-center gap-1 cursor-pointer" title="Copy report">' +
+                    '<button onclick=\\'copyTickerSummary("' + ticker + '", this)\\' class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2 py-1 rounded transition flex items-center gap-1 cursor-pointer" title="Copy report">' +
                       '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>' +
                       '<span>Copy</span>' +
                     '</button>' +
-                    '<button onclick="downloadTickerSummary(\'' + ticker + '\')" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2 py-1 rounded transition flex items-center gap-1 cursor-pointer" title="Download report">' +
+                    '<button onclick=\\'downloadTickerSummary("' + ticker + '")\\' class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2 py-1 rounded transition flex items-center gap-1 cursor-pointer" title="Download report">' +
                       '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>' +
                       '<span>Download</span>' +
                     '</button>' +
