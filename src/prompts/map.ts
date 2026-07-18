@@ -53,7 +53,7 @@ export const MAP_SECTOR_RULES: Record<string, MapSectorRules> = {
     systemRules: `You are evaluating a Standard Corporate company ("STANDARD").
 - Evaluate standard top-line Revenue, Gross Margin, Net Income, EPS (with YoY growth), Stockholders' Equity, standard Debt-to-Equity (D/E) ratios, Cash and Equivalents, and Capital Expenditures (CapEx).`,
     userRules: `For STANDARD:
-   - Report standard Revenue, Gross Margin, Net Income, EPS, Stockholders' Equity, Total Debt, L/E, D/E ratios, Cash and Equivalents, and Capital Expenditures (CapEx).
+   - Report standard Revenue, Gross Margin, Net Income, EPS, Stockholders' Equity, Total Debt, L/E, D/E ratios, Cash and Equivalents, Capital Expenditures (CapEx), Shares Outstanding, Book Value per Share (BVPS), and real-time Valuation Ratios (P/E, P/B) if present in the numeric metrics above.
    - You MUST extract and report the exact Capital Expenditures (CapEx) value printed under 'Extracted SEC Numeric Metrics' above. Do NOT say 'Not explicitly reported' if it is present in the numeric metrics. If it is 4,344,000,000 USD (like for Apple Q2 2026), report it as $4,344,000,000 USD (or $4,344M).`
   },
   SHELL_SPAC: {

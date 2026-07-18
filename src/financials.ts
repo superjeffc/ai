@@ -47,6 +47,46 @@ async function callAgyModel(systemPrompt: string, userPrompt: string, env: Env):
   return await response.text();
 }
 
+async function fetchStockPrice(ticker: string): Promise<number | null> {
+  const normalized = ticker.trim().toUpperCase();
+  const headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    ...SEC_HEADERS
+  };
+
+  // Try NASDAQ first
+  try {
+    const url = `https://www.google.com/finance/quote/${normalized}:NASDAQ`;
+    const res = await fetch(url, { headers });
+    if (res.ok) {
+      const html = await res.text();
+      const match = html.match(/data-last-price="([0-9.]+)"/);
+      if (match && match[1]) {
+        return parseFloat(match[1]);
+      }
+    }
+  } catch (err) {
+    console.error(`Error fetching NASDAQ price for ${normalized}:`, err);
+  }
+
+  // Fallback to NYSE
+  try {
+    const url = `https://www.google.com/finance/quote/${normalized}:NYSE`;
+    const res = await fetch(url, { headers });
+    if (res.ok) {
+      const html = await res.text();
+      const match = html.match(/data-last-price="([0-9.]+)"/);
+      if (match && match[1]) {
+        return parseFloat(match[1]);
+      }
+    }
+  } catch (err) {
+    console.error(`Error fetching NYSE price for ${normalized}:`, err);
+  }
+
+  return null;
+}
+
 /**
  * Translates ticker to a 10-digit zero-padded CIK using a local cache check
  * and fallback to the SEC company_tickers dictionary.
@@ -157,6 +197,7 @@ export async function getRecentFilingInfo(cik: string): Promise<{
  * Fetches XBRL facts for a CIK and extracts Revenue, EPS, Net Income, and
  */
 export async function getFactsForAccession(
+  ticker: string,
   cik: string,
   accessionNumber: string,
   reportDate: string,
@@ -176,7 +217,9 @@ export async function getFactsForAccession(
     }
 
     const data = await res.json() as any;
+    const deiFacts = data.facts?.["dei"];
     const facts = data.facts?.["us-gaap"];
+    const usgaapFacts = facts;
     if (!facts) {
       return "No us-gaap facts found in SEC database.";
     }
@@ -404,6 +447,69 @@ export async function getFactsForAccession(
       "TangibleNetAssetValuePerShare"
     ], true);
 
+    const extractSharesOutstanding = () => {
+      if (deiFacts && deiFacts["EntityCommonStockSharesOutstanding"]) {
+        const entry = deiFacts["EntityCommonStockSharesOutstanding"];
+        if (entry && entry.units) {
+          const unitKey = Object.keys(entry.units)[0];
+          const list = entry.units[unitKey];
+          if (Array.isArray(list)) {
+            let bestItem = null;
+            let bestDiff = Infinity;
+            const targetTime = new Date(reportDate).getTime();
+            for (const item of list) {
+              if (item.end) {
+                const itemTime = new Date(item.end).getTime();
+                const diff = Math.abs(itemTime - targetTime) / (1000 * 60 * 60 * 24);
+                if (diff < 45 && diff < bestDiff) {
+                  bestDiff = diff;
+                  bestItem = item;
+                }
+              }
+            }
+            if (bestItem) {
+              return { val: bestItem.val, concept: "EntityCommonStockSharesOutstanding", unit: unitKey };
+            }
+          }
+        }
+      }
+      if (usgaapFacts && usgaapFacts["CommonStockSharesOutstanding"]) {
+        const entry = usgaapFacts["CommonStockSharesOutstanding"];
+        if (entry && entry.units) {
+          const unitKey = Object.keys(entry.units)[0];
+          const list = entry.units[unitKey];
+          if (Array.isArray(list)) {
+            let bestItem = null;
+            let bestDiff = Infinity;
+            const targetTime = new Date(reportDate).getTime();
+            for (const item of list) {
+              if (item.end) {
+                const itemTime = new Date(item.end).getTime();
+                const diff = Math.abs(itemTime - targetTime) / (1000 * 60 * 60 * 24);
+                if (diff < 45 && diff < bestDiff) {
+                  bestDiff = diff;
+                  bestItem = item;
+                }
+              }
+            }
+            if (bestItem) {
+              return { val: bestItem.val, concept: "CommonStockSharesOutstanding", unit: unitKey };
+            }
+          }
+        }
+      }
+      return null;
+    };
+
+    const sharesOutstanding = extractSharesOutstanding();
+    
+    let computedBvps: number | null = null;
+    if (bvps && bvps.val) {
+      computedBvps = bvps.val;
+    } else if (equity && sharesOutstanding && sharesOutstanding.val > 0) {
+      computedBvps = equity.val / sharesOutstanding.val;
+    }
+
     const ead = extractMetric([
       "EarningsAvailableForDistributionPerShare",
       "NetSpreadAndDollarRollIncomePerCommonShare",
@@ -532,9 +638,33 @@ export async function getFactsForAccession(
     if (assetsHeldInTrust) {
       outputParts.push(`Capital Held in Trust Account: ${assetsHeldInTrust.val.toLocaleString()} ${assetsHeldInTrust.unit}`);
     }
-    if (bvps) {
-      outputParts.push(`Book Value per Share (BVPS / TNBV): ${bvps.val} ${bvps.unit}`);
+    if (sharesOutstanding) {
+      outputParts.push(`Shares Outstanding: ${sharesOutstanding.val.toLocaleString()} ${sharesOutstanding.unit} (Concept: ${sharesOutstanding.concept})`);
+    } else {
+      outputParts.push(`Shares Outstanding: Not found`);
     }
+
+    if (computedBvps !== null) {
+      outputParts.push(`Book Value per Share (BVPS / TNBV): ${computedBvps.toFixed(2)} USD`);
+    } else {
+      outputParts.push(`Book Value per Share (BVPS / TNBV): Not found`);
+    }
+
+    const price = await fetchStockPrice(ticker);
+    if (price !== null) {
+      outputParts.push(`Current Stock Price: ${price} USD`);
+      if (eps && eps.val > 0) {
+        const divisor = is10K ? eps.val : (eps.val * 4);
+        const peLabel = is10K ? "P/E Ratio (TTM)" : "P/E Ratio (Annualized)";
+        outputParts.push(`${peLabel}: ${(price / divisor).toFixed(2)}`);
+      }
+      if (computedBvps !== null && computedBvps > 0) {
+        outputParts.push(`P/B Ratio: ${(price / computedBvps).toFixed(2)}`);
+      }
+    } else {
+      outputParts.push(`Current Stock Price: Not found`);
+    }
+
     if (ead) {
       outputParts.push(`Earnings Available for Distribution (EAD): ${ead.val} ${ead.unit}`);
     }
@@ -757,7 +887,7 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
 
     // 4. Ingestion & Analysis Pipeline (Cache Miss)
     const [factsText, transcriptText] = await Promise.all([
-      getFactsForAccession(cik, accessionNumber, reportDate, form, sic || "", sicDescription || "", submissionsData?.name || ""),
+      getFactsForAccession(cleanTicker, cik, accessionNumber, reportDate, form, sic || "", sicDescription || "", submissionsData?.name || ""),
       fetchEarningCallTranscript(cleanTicker, cik, submissionsData, filingDate, env)
     ]);
 
