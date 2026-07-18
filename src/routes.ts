@@ -42,6 +42,23 @@ export async function handleSynthesizeRoute(request: Request, env: Env, url: URL
       .map(t => t.trim().toUpperCase())
       .filter(Boolean);
 
+    // Validate ticker formats to prevent malicious or malformed inputs
+    const TICKER_REGEX = /^[A-Z]{1,5}(?:[.-][A-Z]{1,2})?$/;
+    for (const ticker of rawTickers) {
+      if (!TICKER_REGEX.test(ticker)) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `Invalid ticker format: "${ticker}". Tickers must be 1-8 alphabetic characters, optionally containing a single dot or hyphen (e.g. AAPL, BRK.B).`
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" }
+          }
+        );
+      }
+    }
+
     if (rawTickers.length > 4) {
       return new Response(JSON.stringify({ success: false, error: "Maximum of 4 tickers can be analyzed at a time." }), {
         status: 400,
