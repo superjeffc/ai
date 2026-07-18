@@ -3,6 +3,9 @@
   "name": "ai",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-15",
+  "routes": [
+    "ai.superjeffc.com/api/*"
+  ],
   "kv_namespaces": [
     {
       "binding": "USER_SESSIONS_KV",
