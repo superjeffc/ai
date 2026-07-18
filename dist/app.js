@@ -126,6 +126,8 @@ window.tickerSummaries = {};
         return;
       }
 
+      let shouldResetScroll = true;
+
       const btn = document.getElementById('synth-btn');
       const placeholder = document.getElementById('synth-placeholder');
       const loading = document.getElementById('synth-loading');
@@ -230,11 +232,13 @@ window.tickerSummaries = {};
             setTimeout(poll, pollInterval);
             loading.classList.remove('hidden');
             results.classList.remove('hidden');
+            if (shouldResetScroll) { results.scrollTop = 0; shouldResetScroll = false; }
             document.getElementById('synth-synthesis-card').classList.add('hidden');
           } else if (data.status === "synthesizing") {
             setTimeout(poll, pollInterval);
             loading.classList.add('hidden');
             results.classList.remove('hidden');
+            if (shouldResetScroll) { results.scrollTop = 0; shouldResetScroll = false; }
             document.getElementById('synth-synthesis-card').classList.remove('hidden');
             const synthContent = document.getElementById('synth-synthesis-content');
             synthContent.innerHTML = 
@@ -249,6 +253,7 @@ window.tickerSummaries = {};
             
             loading.classList.add('hidden');
             results.classList.remove('hidden');
+            if (shouldResetScroll) { results.scrollTop = 0; shouldResetScroll = false; }
             document.getElementById('synth-synthesis-card').classList.remove('hidden');
             
             btn.disabled = false;
