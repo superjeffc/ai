@@ -371,6 +371,23 @@ async function getFactsForAccession(
       "AssetsHeldInTrustCurrent"
     ], true);
 
+    const bvps = extractMetric([
+      "BookValuePerShareOfCommonStock",
+      "CommonStockBookValuePerShare",
+      "BookValuePerShare",
+      "TangibleBookValuePerShare",
+      "TangibleNetBookValuePerShare",
+      "TangibleNetAssetValuePerShare"
+    ], true);
+
+    const ead = extractMetric([
+      "EarningsAvailableForDistributionPerShare",
+      "NetSpreadAndDollarRollIncomePerCommonShare",
+      "CoreEarningsPerShare",
+      "CoreEarningsPerCommonShareBasicAndDiluted",
+      "CoreEarningsPerCommonShare"
+    ], false);
+
     const grossProfit = extractMetric([
       "GrossProfit",
       "GrossProfitFromOperatingActivities"
@@ -491,6 +508,12 @@ async function getFactsForAccession(
     if (assetsHeldInTrust) {
       outputParts.push(`Capital Held in Trust Account: ${assetsHeldInTrust.val.toLocaleString()} ${assetsHeldInTrust.unit}`);
     }
+    if (bvps) {
+      outputParts.push(`Book Value per Share (BVPS / TNBV): ${bvps.val} ${bvps.unit}`);
+    }
+    if (ead) {
+      outputParts.push(`Earnings Available for Distribution (EAD): ${ead.val} ${ead.unit}`);
+    }
 
     return outputParts.join("\n");
   } catch (err: any) {
@@ -579,8 +602,8 @@ async function fetchEarningCallTranscript(ticker: string, cik: string, submissio
       // Look for Exhibit 99.1 or other Exhibit 99 files
       const exhibitItem = itemsList.find(item => 
         item.name && 
-        /ex[-_]?99/i.test(item.name) && 
-        item.type === "file"
+        /ex(?:hibit)?[-_]?99/i.test(item.name) && 
+        /\.htm/i.test(item.name)
       );
       if (exhibitItem) {
         documentName = exhibitItem.name;

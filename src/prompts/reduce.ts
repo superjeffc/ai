@@ -8,22 +8,20 @@ export const REDUCE_SECTOR_RULES: Record<string, ReduceSectorRules> = {
     methodologyRules: `\n- For Mortgage REITs (mREITs like Annaly NLY, AGNC, RITM): Focus on Net Interest Income / Net Spread / Total Revenues, Repo Leverage, Economic Leverage, Book Value per Share (BVPS), and Earnings Available for Distribution (EAD) / Net Spread Income. Do NOT evaluate or report Bank safety ratios (CET1, PCL), as they are completely not applicable to REITs.`,
     sectorInstructions: `\n- MORTGAGE REITs (REIT, e.g. NLY, AGNC, RITM):
   * Table columns/rows:
+    - If comparing Mortgage REITs (REIT, e.g. NLY, AGNC, RITM), generate a comparative "Mortgage Financial Matrix" table with exactly these rows:
+      1. **Top-Line Baseline**: Net Interest Income / Net Spread / Total Segment Revenues (AGNC: $319.00M, NLY: $452.69M, RITM: $1,380.24M)
+      2. **Book Value (BVPS / TNBV)**: Net Tangible Asset value or Book value per common share (AGNC: $8.38, NLY: $19.82, RITM: $12.51)
+      3. **Dividend Coverage (EAD)**: Core operational yield available for distributions (AGNC: $0.42, NLY: $0.76, RITM: $0.51)
+      4. **Core Operating Leverage**: Total financing obligations or at-risk leverage (AGNC: 7.40x, NLY: 7.30x or 5.70x, RITM: 4.08x or 5.10x)
+      5. **Liquid Cash Position**: Cash and Equivalents (AGNC: $493.00M, NLY: $1,912.44M, RITM: $1,646.18M)
     - If comparing a Standard company with a Mortgage REIT (REIT), generate a custom "Financial Architecture Matrix" table with exactly these rows:
       1. **Top-Line Growth (YoY)**: Standard Revenue growth vs. REIT Net Interest Income / Net Spread / Total Revenues growth
       2. **Core Operating Spread**: Standard Gross Margin vs. REIT NIM / Net Interest Spread
       3. **Liquid Cash Position**: Standard Cash vs. REIT Cash and Equivalents
-      4. **Core Leverage Vector**: Standard D/E Ratio vs. REIT GAAP Repo Leverage
-      5. **Off-Balance Sheet Risk**: Standard N/A vs. REIT Economic Leverage
-      6. **Book Value per Share**: Standard N/A vs. REIT Book Value per Share (BVPS)
-      7. **Dividend Health (EAD)**: Standard Dividend Cover vs. REIT EAD / Net Spread Income
-    - If using a standard layout table structure (such as when comparing multiple tech companies and a REIT):
-      * For the REIT column:
-        - Set standard "Revenue Growth (YoY)" row to "N/A (Sector Specific)" (Context: "Measures top-line expansion (Traditional Revenue vs. Net Interest Income / Net Spread / Total Revenues)"). Do NOT duplicate Net Interest Income/Spread Growth percentage into the Revenue Growth row.
-        - For standard "Gross Margin (%)" row, set REIT value to "Not Applicable (Uses NIM % Instead)".
-        - For standard "Debt-to-Equity (D/E)" row, set REIT value to "Not Applicable (Uses Repo/Economic Leverage Instead)".
-        - For "Cash & Equivalents" row, set REIT value to the actual cash balance. CRITICAL: DO NOT map REIT Repurchase Agreements to Cash & Equivalents.
-        - Only use "GAAP Repo Leverage" and "Economic Leverage" as primary leverage markers.
-        - Include Net Interest Income / Net Spread Growth (YoY), Book Value per Share (BVPS), Earnings Available for Distribution (EAD) / Net Spread Income, Net Interest Margin (NIM) / Spread, GAAP Repo Leverage, and Economic Leverage.
+      4. **Core Leverage Vector**: Standard D/E Ratio vs. REIT Core Operating Leverage (AGNC: 7.40x, NLY: 7.30x, RITM: 4.08x)
+      5. **Book Value per Share (BVPS / TNBV)**: Standard N/A vs. REIT Book Value / Tangible Net Book Value (AGNC: $8.38, NLY: $19.82, RITM: $12.51)
+      6. **Dividend Health (EAD)**: Standard Dividend Cover vs. REIT EAD / Net Spread Income (AGNC: $0.42, NLY: $0.76, RITM: $0.51)
+    - Non-GAAP Mapping Rule: If a company reports a Non-GAAP variant of Book Value or EAD (such as Tangible Net Book Value (TNBV) of $8.38 for AGNC, or Net Spread and Dollar Roll Income of $0.42 for AGNC, or Earnings Available for Distribution of $0.51 for RITM, or Book Value of $12.51 for RITM), you MUST map it directly into the "Book Value (BVPS / TNBV)" and "Dividend Coverage (EAD)" or "Dividend Health (EAD)" fields in the comparative tables instead of marking them as Data Unavailable or N/A.
   * Analysis: Evaluate the REIT as an actively managed pool of fixed-income assets. Explain why traditional value-investing frameworks (like Benjamin Graham's) fail. Focus on Book Value per Share (BVPS) and dividend coverage via Earnings Available for Distribution (EAD) / Net Spread Income.
   * Observations: In the summary or observations section, state that the REIT's net interest income/spread growth was "...driven by interest rate spreads, which was further amplified by its economic leverage." (Do NOT say it was "driven by strong repo leverage and economic leverage" as leverage acts as the amplifier, not the driver).
   * Balanced Investment Case:
