@@ -2,7 +2,8 @@ import { Env } from "./types";
 import { synthesizeSingleTicker, runComparativeReduce } from "./financials";
 import {
   handleFrontendRoute,
-  handleSynthesizeRoute
+  handleSynthesizeRoute,
+  handleJSRoute
 } from "./routes";
 import { syncLatestFilings } from "./sync";
 
@@ -30,6 +31,11 @@ export default {
     // ROUTE 1: Serves the Web UI Layout
     if (url.pathname === "/" && request.method === "GET") {
       return handleFrontendRoute(request, env, userId);
+    }
+
+    // ROUTE 1.5: Serves the JS file for local dev
+    if (url.pathname === "/app.js" && request.method === "GET") {
+      return handleJSRoute(request, env);
     }
 
     // ROUTE 2: GET /api/synthesize?tickers=AAPL,MSFT,NVDA

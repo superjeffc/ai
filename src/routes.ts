@@ -1,5 +1,5 @@
 import { Env } from "./types";
-import { getHTMLFrontend } from "./frontend";
+import { getHTMLFrontend, getJSFrontend } from "./frontend";
 import { synthesizeSingleTicker, runComparativeReduce, getCikForTicker, getRecentFilingInfo } from "./financials";
 
 /**
@@ -306,4 +306,13 @@ export async function handleSynthesizeRoute(request: Request, env: Env, url: URL
       headers: { "Content-Type": "application/json" }
     });
   }
+}
+
+/**
+ * ROUTE 1.5: Serves the JS code for local development
+ */
+export async function handleJSRoute(request: Request, env: Env): Promise<Response> {
+  return new Response(getJSFrontend(), {
+    headers: { "Content-Type": "application/javascript; charset=utf-8" }
+  });
 }

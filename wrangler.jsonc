@@ -47,5 +47,8 @@
     "crons": [
       "0 * * * *"
     ]
-  }
+  },
+  "rules": [
+    { "type": "Text", "globs": ["**/*.html", "**/*.js"], "fallthrough": true }
+  ]
 }
