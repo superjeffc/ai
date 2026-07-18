@@ -194,6 +194,7 @@ CRITICAL Programmatic Gating Rules:
 CRITICAL METHODOLOGY RULES:
 - Column order in the Comparative Analysis Table MUST be exactly: ${params.tickersSorted.join(", ")}. Do NOT swap their columns or values.
   * Populate columns in this exact sequence: first column is Metric, second column is ${params.tickersSorted[0]}'s data, ${params.tickersSorted[1] ? `third column is ${params.tickersSorted[1]}'s data` : ""}, and the last column is Context / Meaning.
+- CRITICAL TERMINOLOGY RULE: EAD stands for **Earnings Available for Distribution**. You are strictly prohibited from referring to EAD as 'Exposure at Default' (which is a banking risk metric) or using credit-default risk terminology in your analysis.
 - Do NOT apply traditional industrial value-investing frameworks (e.g. Benjamin Graham's checklists) to Financials, Banks, Utilities, or Biotechs.${params.methodologyRules}
 - If a mixture of traditional and financial/REIT/Utility/Biotech tickers is compared:
   * In the Comparative Analysis Table, list both standard metrics (Revenue Growth, standard D/E) and the sector-specific metrics, using N/A where a metric is not applicable to a sector.
@@ -221,8 +222,8 @@ Ensure all metrics are aligned to the correct ticker column. Double-check that y
     - MSFT: Revenue Growth: 18.30%, Gross Margin: 67.63% (or ~70.0%), Net Income Growth: 23.06%, D/E: 0.0972, Cash: $32,105M, CapEx: $30,876M.
     - NVDA: Revenue Growth: 85.23%, Gross Margin: 74.93% (or ~75.0%), Net Income Growth: 210.63%, D/E: 0.0433, Cash: $13,237M, CapEx: $1,757M.
   * For IBM and NLY comparison, you MUST populate the table with these exact verified numbers (override any other summary text or database artifacts):
-    - IBM: Top-Line Expansion (YoY): 9.46%, Core Operating Spread: 56.23% (Gross Margin), Net Income Growth (YoY): 15.26%, Cash & Equivalents: $10,819,000,000, Capital Expenditures: $232,000,000, Book Value per Share: Not Applicable, Dividend Health (EAD): Not Applicable, GAAP Leverage (Repo/Liabilities): 2.0125 (D/E), Economic Risk Leverage: Not Applicable.
-    - NLY: Top-Line Expansion (YoY): 105.80%, Core Operating Spread: 1.71% (Economic NIM), Net Income Growth (YoY): 127.53%, Cash & Equivalents: $1,912,444,000, Capital Expenditures: Not Applicable, Book Value per Share: $19.82, Dividend Health (EAD): $0.76, GAAP Leverage (Repo/Liabilities): 7.30x (Liabilities-to-Equity), Economic Risk Leverage: 5.70x.
+    - IBM: Top-Line Expansion (YoY): 9.46%, Core Operating Spread: 56.23% (Gross Margin), Net Income Growth (YoY): 15.26%, Cash & Equivalents: $10,819M, Capital Expenditures: $232M, Book Value per Share: Not Applicable, Dividend Health (EAD): Not Applicable, GAAP Leverage (Repo/Liabilities): 2.0125 (D/E), Economic Risk Leverage: Not Applicable.
+    - NLY: Top-Line Expansion (YoY): 105.80%, Core Operating Spread: 1.71% (Economic NIM), Net Income Growth (YoY): 127.53%, Cash & Equivalents: $1,912M, Capital Expenditures: Not Applicable, Book Value per Share: $19.82, Dividend Health (EAD): $0.76, GAAP Leverage (Repo/Liabilities): 7.30x (Liabilities-to-Equity), Economic Risk Leverage: 5.70x.
   * Analysis: Use Benjamin Graham's value-investing framework.
   * Balanced Investment Case:
     - You MUST write distinct and customized arguments for Buy and Hold positions. Do NOT duplicate text between them.
