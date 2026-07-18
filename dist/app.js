@@ -63,6 +63,14 @@ window.tickerSummaries = {};
       }
     }
 
+    function renderMarkdown(md) {
+      if (!md) return "";
+      const html = marked.parse(md);
+      return html
+        .replace(/<table>/g, '<div class="overflow-x-auto w-full border border-gray-800 rounded-lg my-3"><table class="min-w-full !my-0">')
+        .replace(/<\/table>/g, '</table></div>');
+    }
+
     function copyTickerSummary(ticker, btn) {
       const summary = window.tickerSummaries[ticker] || "";
       copyToClipboard(summary, btn);
@@ -214,7 +222,7 @@ window.tickerSummaries = {};
                   '<div>Filing Date: <span class="text-gray-200 font-medium">' + (info.filingDate || 'N/A') + '</span></div>' +
                   '<div>Accession: <span class="text-gray-200 font-medium font-mono">' + (info.accessionNumber || 'N/A') + '</span></div>' +
                 '</div>' +
-                '<div class="text-sm text-gray-300 leading-relaxed flex-1 prose max-w-none">' + marked.parse(info.summary || '') + '</div>';
+                '<div class="text-sm text-gray-300 leading-relaxed flex-1 prose max-w-none">' + renderMarkdown(info.summary || '') + '</div>';
             }
             cardsContainer.appendChild(card);
           }
@@ -249,7 +257,7 @@ window.tickerSummaries = {};
           } else {
             const synthContent = document.getElementById('synth-synthesis-content');
             window.synthesisReport = data.data.synthesis || '';
-            synthContent.innerHTML = marked.parse(window.synthesisReport);
+            synthContent.innerHTML = renderMarkdown(window.synthesisReport);
             
             loading.classList.add('hidden');
             results.classList.remove('hidden');
