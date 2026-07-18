@@ -122,7 +122,7 @@ Ensure all metrics are aligned to the correct ticker column. Double-check that y
 
 2. For each company, you MUST apply its corresponding sector framework:
 - STANDARD CORPORATE (Tech/Retail/Manufacturing, e.g. AAPL, MSFT, NVDA):
-  * Table columns: Revenue Growth (YoY), Gross Margin (%), Net Income Growth (YoY), Debt-to-Equity (D/E), Cash & Equivalents, Capital Expenditures, Shares Outstanding, Book Value per Share (BVPS), P/E Ratio, P/B Ratio.
+  * Table columns: Revenue Growth (YoY), Gross Margin (%), Net Income Growth (YoY), Debt-to-Equity (D/E), Cash & Equivalents, Capital Expenditures, Shares Outstanding, Book Value per Share (BVPS), P/E Ratio, P/B Ratio, FCF Conversion Rate (%), Core Engine Segment Revenues & Growth, Days Inventory Outstanding (DIO), Headcount Efficiency (Revenue/Net Income per Employee).
   * For AAPL, MSFT, NVDA comparison, you MUST populate the table with these exact verified numbers (override any summary text to report exactly $4,344M for AAPL CapEx):
     - AAPL: Revenue Growth: 16.60%, Gross Margin: 49.27% (or ~47.0%), Net Income Growth: 19.36%, D/E: 0.7767, Cash: $45,572M, CapEx: $4,344M.
     - MSFT: Revenue Growth: 18.30%, Gross Margin: 67.63% (or ~70.0%), Net Income Growth: 23.06%, D/E: 0.0972, Cash: $32,105M, CapEx: $30,876M.
@@ -131,6 +131,9 @@ Ensure all metrics are aligned to the correct ticker column. Double-check that y
     - IBM: Top-Line Expansion (YoY): 9.46%, Core Operating Spread: 56.23% (Gross Margin), Net Income Growth (YoY): 15.26%, Cash & Equivalents: $10,819M, Capital Expenditures: $232M, Book Value per Share: Not Applicable, Dividend Health (EAD): Not Applicable, GAAP Leverage (Repo/Liabilities): 2.0125 (D/E), Economic Risk Leverage: Not Applicable.
     - NLY: Top-Line Expansion (YoY): 105.80%, Core Operating Spread: 1.71% (Economic NIM), Net Income Growth (YoY): 127.53%, Cash & Equivalents: $1,912M, Capital Expenditures: Not Applicable, Book Value per Share: $19.82, Dividend Health (EAD): $0.76, GAAP Leverage (Repo/Liabilities): 7.30x (Liabilities-to-Equity), Economic Risk Leverage: 5.70x.
   * Analysis: Use Benjamin Graham's value-investing framework.
+  * Programmatic Risk Logic (Dynamic Risk Weighting):
+    - CapEx-to-Revenue Threshold: If a company's CapEx-to-Revenue ratio exceeds 30% (e.g. MSFT's hyper-scale data center builds), you MUST highlight the ROI duration risk, execution lag, and margin implications in the Sell/Hold arguments.
+    - Inventory Velocity Risk: For hardware/manufacturing companies (like AAPL or NVDA), if Days Inventory Outstanding (DIO) is elevated or rising alongside growth deceleration, you MUST flag inventory write-down risks, cyclical slowdown, or supply-chain bottlenecks in the Sell arguments.
   * Balanced Investment Case:
     - You MUST write distinct and customized arguments for Buy and Hold positions. Do NOT duplicate text between them.
     - Buy Arguments: Focus on positive growth catalysts. Specifically: ${params.buyList}

@@ -510,6 +510,79 @@ export async function getFactsForAccession(
       computedBvps = equity.val / sharesOutstanding.val;
     }
 
+    const cashFromOps = extractMetric([
+      "NetCashProvidedByUsedInOperatingActivities",
+      "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations",
+      "CashProvidedByUsedInOperatingActivitiesNet"
+    ], false);
+
+    const inventory = extractMetric([
+      "InventoryNet",
+      "InventoriesPresentValued",
+      "InventoryGross"
+    ], true);
+
+    const extractDeiEmployeeCount = () => {
+      if (deiFacts && deiFacts["EntityNumberOfEmployees"]) {
+        const entry = deiFacts["EntityNumberOfEmployees"];
+        if (entry && entry.units) {
+          const unitKey = Object.keys(entry.units)[0];
+          const list = entry.units[unitKey];
+          if (Array.isArray(list)) {
+            let bestItem = null;
+            let bestDiff = Infinity;
+            const targetTime = new Date(reportDate).getTime();
+            for (const item of list) {
+              if (item.end) {
+                const itemTime = new Date(item.end).getTime();
+                const diff = Math.abs(itemTime - targetTime) / (1000 * 60 * 60 * 24);
+                if (diff < 180 && diff < bestDiff) {
+                  bestDiff = diff;
+                  bestItem = item;
+                }
+              }
+            }
+            if (bestItem) {
+              return { val: bestItem.val, concept: "EntityNumberOfEmployees", unit: unitKey };
+            }
+          }
+        }
+      }
+      return null;
+    };
+
+    const employeesInfo = extractDeiEmployeeCount();
+
+    let computedFcfVal: number | null = null;
+    let fcfConversionPct: number | null = null;
+    if (cashFromOps && netInc && netInc.val !== 0) {
+      const capExVal = capEx ? capEx.val : 0;
+      computedFcfVal = cashFromOps.val - capExVal;
+      fcfConversionPct = (computedFcfVal / netInc.val) * 100;
+    }
+
+    let dio: number | null = null;
+    if (inventory && costOfRevenue && costOfRevenue.val > 0) {
+      const multiplier = is10K ? 365 : 90;
+      dio = (inventory.val / costOfRevenue.val) * multiplier;
+    }
+
+    let revPerEmployee: number | null = null;
+    let netIncPerEmployee: number | null = null;
+    if (employeesInfo && employeesInfo.val > 0) {
+      if (rev) {
+        revPerEmployee = rev.val / employeesInfo.val;
+      }
+      if (netInc) {
+        netIncPerEmployee = netInc.val / employeesInfo.val;
+      }
+    }
+
+    let capexToRevenuePct: number | null = null;
+    if (capEx && rev && rev.val > 0) {
+      capexToRevenuePct = (capEx.val / rev.val) * 100;
+    }
+
     const ead = extractMetric([
       "EarningsAvailableForDistributionPerShare",
       "NetSpreadAndDollarRollIncomePerCommonShare",
@@ -667,6 +740,45 @@ export async function getFactsForAccession(
 
     if (ead) {
       outputParts.push(`Earnings Available for Distribution (EAD): ${ead.val} ${ead.unit}`);
+    }
+
+    if (cashFromOps) {
+      outputParts.push(`Cash from Operations: ${cashFromOps.val.toLocaleString()} ${cashFromOps.unit}`);
+      if (computedFcfVal !== null) {
+        outputParts.push(`Free Cash Flow (FCF): ${computedFcfVal.toLocaleString()} ${cashFromOps.unit}`);
+      }
+      if (fcfConversionPct !== null) {
+        outputParts.push(`FCF Conversion Rate: ${fcfConversionPct.toFixed(2)}%`);
+      }
+    } else {
+      outputParts.push("Cash from Operations: Not found");
+    }
+
+    if (inventory) {
+      outputParts.push(`Inventories (Net): ${inventory.val.toLocaleString()} ${inventory.unit}`);
+      if (dio !== null) {
+        outputParts.push(`Days Inventory Outstanding (DIO): ${dio.toFixed(1)} days`);
+      }
+    } else {
+      outputParts.push("Inventories (Net): Not found");
+    }
+
+    if (employeesInfo) {
+      outputParts.push(`Employee Headcount: ${employeesInfo.val.toLocaleString()}`);
+      if (revPerEmployee !== null) {
+        outputParts.push(`Revenue per Employee: ${revPerEmployee.toFixed(2)} USD`);
+      }
+      if (netIncPerEmployee !== null) {
+        outputParts.push(`Net Income per Employee: ${netIncPerEmployee.toFixed(2)} USD`);
+      }
+    } else {
+      outputParts.push("Employee Headcount: Not found");
+    }
+
+    if (capexToRevenuePct !== null) {
+      outputParts.push(`CapEx-to-Revenue Ratio: ${capexToRevenuePct.toFixed(2)}%`);
+    } else {
+      outputParts.push("CapEx-to-Revenue Ratio: Not found");
     }
 
     return outputParts.join("\n");

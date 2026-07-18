@@ -51,9 +51,15 @@ export const MAP_SECTOR_RULES: Record<string, MapSectorRules> = {
   },
   STANDARD: {
     systemRules: `You are evaluating a Standard Corporate company ("STANDARD").
-- Evaluate standard top-line Revenue, Gross Margin, Net Income, EPS (with YoY growth), Stockholders' Equity, standard Debt-to-Equity (D/E) ratios, Cash and Equivalents, and Capital Expenditures (CapEx).`,
+- Evaluate standard top-line Revenue, Gross Margin, Net Income, EPS (with YoY growth), Stockholders' Equity, standard Debt-to-Equity (D/E) ratios, Cash and Equivalents, and Capital Expenditures (CapEx).
+- You MUST compute or extract the Free Cash Flow (FCF) Conversion Rate, Days Inventory Outstanding (DIO), and Employee Count Efficiency Ratios if present.
+- Isolate and extract Core Engine Segment Revenues / Catalysts (specifically: Intelligent Cloud/Azure growth for MSFT; Services vs. iPhone hardware revenue for AAPL; Compute & Networking/Data Center vs. Graphics/Gaming revenue for NVDA) from the text notes of the filings or earnings releases.`,
     userRules: `For STANDARD:
    - Report standard Revenue, Gross Margin, Net Income, EPS, Stockholders' Equity, Total Debt, L/E, D/E ratios, Cash and Equivalents, Capital Expenditures (CapEx), Shares Outstanding, Book Value per Share (BVPS), and real-time Valuation Ratios (P/E, P/B) if present in the numeric metrics above.
+   - Extract and report: **Free Cash Flow (FCF)**, **FCF Conversion Rate**, **Days Inventory Outstanding (DIO)**, and **Employee Efficiency Ratios** (Revenue per Employee, Net Income per Employee) if present in the numeric metrics above.
+   - Isolate and explicitly report the **Core Engine Segment Revenues & Growth Rates** (e.g. Azure/Cloud growth for Microsoft; Services vs. iPhone revenue for Apple; Data Center/Compute vs. Gaming for Nvidia) by scanning the provided earnings release or 8-K text.
+   - **Programmatic Logic - CapEx Timelines:** If the CapEx-to-Revenue ratio is above 30% (e.g. Microsoft), search the text notes (MD&A) and earnings transcript for the management's discussion on ROI timelines, data center expansion duration, and capital expenditure amortization, and report these timelines.
+   - **Programmatic Logic - Supply Chain / Inventory Risk:** If Days Inventory Outstanding (DIO) is elevated or rising (e.g. above 60 days or a visible sequential increase) alongside deceleration in segment sales, search the text notes for supply chain constraints, excess inventory risk, or cyclical cooling and highlight these risks.
    - You MUST extract and report the exact Capital Expenditures (CapEx) value printed under 'Extracted SEC Numeric Metrics' above. Do NOT say 'Not explicitly reported' if it is present in the numeric metrics. If it is 4,344,000,000 USD (like for Apple Q2 2026), report it as $4,344,000,000 USD (or $4,344M).`
   },
   SHELL_SPAC: {
