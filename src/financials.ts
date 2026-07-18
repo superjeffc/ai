@@ -23,6 +23,30 @@ async function rateLimitedFetch(url: string, options: RequestInit = {}): Promise
   return fetch(url, options);
 }
 
+async function callAgyModel(systemPrompt: string, userPrompt: string, env: Env): Promise<string> {
+  const secretToken = env.API_SECRET || "kite-vscode-secret-9942";
+  console.log(`Calling AGY bridge at https://agy.superjeffc.com/execute (System prompt: ${systemPrompt.length} chars, User prompt: ${userPrompt.length} chars)`);
+  const startTime = Date.now();
+  const response = await fetch("https://agy.superjeffc.com/execute", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${secretToken}`
+    },
+    body: JSON.stringify({ systemPrompt, userPrompt })
+  });
+
+  const duration = Date.now() - startTime;
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error(`AGY bridge request failed after ${duration}ms with status ${response.status}: ${errText}`);
+    throw new Error(`AGY bridge request failed (${response.status}): ${errText}`);
+  }
+
+  console.log(`AGY bridge request succeeded in ${duration}ms`);
+  return await response.text();
+}
+
 /**
  * Translates ticker to a 10-digit zero-padded CIK using a local cache check
  * and fallback to the SEC company_tickers dictionary.
@@ -812,17 +836,7 @@ export async function synthesizeSingleTicker(ticker: string, env: Env): Promise<
       transcriptText
     });
 
-    const modelName = "@cf/meta/llama-3.1-8b-instruct-fp8";
-    const aiResult = await env.AI.run(modelName, {
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      max_tokens: 1000,
-      temperature: 0.2
-    });
-
-    const summary = aiResult.response || "Failed to generate summary from AI model.";
+    const summary = await callAgyModel(systemPrompt, userPrompt, env);
 
     // 5. Store in D1 Cache
     try {
@@ -958,17 +972,7 @@ export async function runComparativeReduce(
     sectorInstructions
   });
 
-  const modelName = "@cf/meta/llama-3.1-8b-instruct-fp8";
-  const aiResult = await env.AI.run(modelName, {
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt }
-    ],
-    max_tokens: 1500,
-    temperature: 0.2
-  });
-
-  return aiResult.response || "Failed to generate comparative synthesis from AI model.";
+  return await callAgyModel(systemPrompt, userPrompt, env);
 }
 
 // ─── WORKER ENDPOINT ENTRYPOINT ───────────────────────────────────────────────
