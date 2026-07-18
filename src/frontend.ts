@@ -119,8 +119,18 @@ export function getHTMLFrontend(): string {
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="synth-ticker-cards"></div>
       
       <div class="bg-gray-900 border border-gray-800 p-4 rounded-xl prose max-w-none text-gray-200" id="synth-synthesis-card">
-        <div class="border-b border-gray-800 pb-2 mb-3 flex justify-between items-center">
+        <div class="border-b border-gray-800 pb-2 mb-3 flex justify-between items-center no-prose">
           <h3 class="text-base font-bold text-white">Comparative Synthesis Report</h3>
+          <div class="flex gap-2">
+            <button onclick="copySynthesis(this)" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2 py-1 rounded transition flex items-center gap-1 cursor-pointer" title="Copy report">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+              <span>Copy</span>
+            </button>
+            <button onclick="downloadSynthesis()" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2 py-1 rounded transition flex items-center gap-1 cursor-pointer" title="Download report">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+              <span>Download</span>
+            </button>
+          </div>
         </div>
         <div id="synth-synthesis-content" class="text-sm leading-relaxed"></div>
       </div>
@@ -140,6 +150,75 @@ export function getHTMLFrontend(): string {
   </div>
 
   <script>
+    window.tickerSummaries = {};
+    window.synthesisReport = "";
+
+    async function copyToClipboard(text, btnElement) {
+      try {
+        await navigator.clipboard.writeText(text);
+        const originalText = btnElement.innerHTML;
+        btnElement.innerHTML = \`
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+          <span>Copied!</span>
+        \`;
+        setTimeout(() => {
+          btnElement.innerHTML = originalText;
+        }, 1500);
+      } catch (err) {
+        console.error("Clipboard copy failed:", err);
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+          document.execCommand("copy");
+          const originalText = btnElement.innerHTML;
+          btnElement.innerHTML = \`
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <span>Copied!</span>
+          \`;
+          setTimeout(() => {
+            btnElement.innerHTML = originalText;
+          }, 1500);
+        } catch (fallbackErr) {
+          alert("Failed to copy text: " + fallbackErr.message);
+        }
+        document.body.removeChild(textarea);
+      }
+    }
+
+    function downloadAsFile(filename, text) {
+      const blob = new Blob([text], { type: "text/markdown;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    function copyTickerSummary(ticker, btn) {
+      const summary = window.tickerSummaries[ticker] || "";
+      copyToClipboard(summary, btn);
+    }
+
+    function downloadTickerSummary(ticker) {
+      const summary = window.tickerSummaries[ticker] || "";
+      downloadAsFile(ticker + "_earnings_report.md", summary);
+    }
+
+    function copySynthesis(btn) {
+      copyToClipboard(window.synthesisReport, btn);
+    }
+
+    function downloadSynthesis() {
+      downloadAsFile("comparative_earnings_synthesis.md", window.synthesisReport);
+    }
+
     const synthTickersInput = document.getElementById('synth-tickers');
     const clearBtn = document.getElementById('clear-tickers-btn');
 
@@ -237,9 +316,20 @@ export function getHTMLFrontend(): string {
                   '<p class="text-sm text-red-400 flex-1">' + info.error + '</p>';
               }
             } else {
+              window.tickerSummaries[ticker] = info.summary || '';
               card.innerHTML = 
                 '<div class="flex justify-between items-center border-b border-gray-800 pb-2 mb-2">' +
                   '<h4 class="font-bold text-white text-base">' + ticker + '</h4>' +
+                  '<div class="flex gap-2">' +
+                    '<button onclick="copyTickerSummary(\'' + ticker + '\', this)" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2 py-1 rounded transition flex items-center gap-1 cursor-pointer" title="Copy report">' +
+                      '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>' +
+                      '<span>Copy</span>' +
+                    '</button>' +
+                    '<button onclick="downloadTickerSummary(\'' + ticker + '\')" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2 py-1 rounded transition flex items-center gap-1 cursor-pointer" title="Download report">' +
+                      '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>' +
+                      '<span>Download</span>' +
+                    '</button>' +
+                  '</div>' +
                 '</div>' +
                 '<div class="text-xs text-gray-400 mb-3 space-y-0.5">' +
                   '<div>Filing Date: <span class="text-gray-200 font-medium">' + (info.filingDate || 'N/A') + '</span></div>' +
@@ -268,7 +358,8 @@ export function getHTMLFrontend(): string {
               '</div>';
           } else {
             const synthContent = document.getElementById('synth-synthesis-content');
-            synthContent.innerHTML = marked.parse(data.data.synthesis || '');
+            window.synthesisReport = data.data.synthesis || '';
+            synthContent.innerHTML = marked.parse(window.synthesisReport);
             
             loading.classList.add('hidden');
             results.classList.remove('hidden');
