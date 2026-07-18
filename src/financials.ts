@@ -24,30 +24,29 @@ async function rateLimitedFetch(url: string, options: RequestInit = {}): Promise
 }
 
 async function callAgyModel(systemPrompt: string, userPrompt: string, env: Env): Promise<string> {
-  const secretToken = env.API_SECRET;
-  if (!secretToken) {
-    throw new Error("Missing API_SECRET binding. Please configure API_SECRET as a secure Wrangler secret.");
-  }
-  console.log(`Calling AGY bridge at https://agy.superjeffc.com/execute (System prompt: ${systemPrompt.length} chars, User prompt: ${userPrompt.length} chars)`);
+  console.log(`Running native Cloudflare Workers AI Llama model (System prompt: ${systemPrompt.length} chars, User prompt: ${userPrompt.length} chars)`);
   const startTime = Date.now();
-  const response = await fetch("https://agy.superjeffc.com/execute", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${secretToken}`
-    },
-    body: JSON.stringify({ systemPrompt, userPrompt })
-  });
+  
+  try {
+    const aiResponse = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fp8", {
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ]
+    }) as any;
 
-  const duration = Date.now() - startTime;
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error(`AGY bridge request failed after ${duration}ms with status ${response.status}: ${errText}`);
-    throw new Error(`AGY bridge request failed (${response.status}): ${errText}`);
+    const duration = Date.now() - startTime;
+    console.log(`Workers AI model request succeeded in ${duration}ms`);
+
+    const result = aiResponse.response || aiResponse.text || "";
+    if (!result) {
+      throw new Error("Empty response returned from Workers AI");
+    }
+    return result;
+  } catch (err: any) {
+    console.error(`Workers AI request failed:`, err);
+    throw new Error(`Workers AI request failed: ${err.message}`);
   }
-
-  console.log(`AGY bridge request succeeded in ${duration}ms`);
-  return await response.text();
 }
 
 async function fetchStockPrice(ticker: string): Promise<number | null> {
