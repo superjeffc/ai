@@ -47,6 +47,35 @@ export async function syncLatestFilings(env: Env): Promise<void> {
             .first<{ ticker: string }>();
 
           if (mapping && mapping.ticker) {
+            // Check if we already have the summary for this specific accession
+            const cached = await env.DB.prepare(
+              "SELECT summary FROM earnings_cache WHERE ticker = ?1 AND accession_number = ?2"
+            )
+              .bind(mapping.ticker, accessionNumber)
+              .first<{ summary: string }>();
+
+            // Proactively queue ingestion in the background if it is a new filing
+            if (!cached) {
+              try {
+                // Write a PENDING lock record to earnings_cache
+                await env.DB.prepare(
+                  "INSERT INTO earnings_cache (ticker, accession_number, filing_date, summary) VALUES (?1, ?2, ?3, ?4)"
+                )
+                  .bind(mapping.ticker, accessionNumber, filingDate, "PENDING")
+                  .run();
+
+                // Send the ingestion task to the Cloudflare Queue
+                if (env.SEC_QUEUE) {
+                  await env.SEC_QUEUE.send({ ticker: mapping.ticker });
+                  console.log(`[Proactive Sync] Enqueued background ingestion for ${mapping.ticker} (Accession: ${accessionNumber})`);
+                } else {
+                  console.warn(`[Proactive Sync] SEC_QUEUE binding is missing; cannot queue ingestion for ${mapping.ticker}`);
+                }
+              } catch (dbLockErr) {
+                // Conflict indicates it was already locked or inserted by another isolate, safe to ignore
+              }
+            }
+
             // Update latest_filings with the new metadata
             await env.DB.prepare(
               "INSERT OR REPLACE INTO latest_filings (ticker, cik, accession_number, filing_date, form, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, CURRENT_TIMESTAMP)"
