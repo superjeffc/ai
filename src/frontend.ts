@@ -115,6 +115,12 @@ export function getHTMLFrontend(): string {
       <p class="text-xs text-gray-500 mt-2">Analyzes up to 4 comma-separated tickers.</p>
     </div>
 
+    <!-- Anchored Navigation / Quick Links -->
+    <div id="synth-jump-bar" class="w-full bg-gray-900/40 border border-gray-800 p-2 rounded-xl mb-4 shrink-0 flex items-center gap-2 overflow-x-auto hidden">
+      <span class="text-xs text-gray-400 font-semibold uppercase px-2 shrink-0">Jump To:</span>
+      <div id="synth-jump-links" class="flex gap-2 overflow-x-auto"></div>
+    </div>
+
     <div id="synth-results" class="flex-1 overflow-y-auto space-y-4 pr-1 hidden">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="synth-ticker-cards"></div>
       
@@ -201,6 +207,13 @@ export function getHTMLFrontend(): string {
       URL.revokeObjectURL(url);
     }
 
+    function scrollToElement(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
     function copyTickerSummary(ticker, btn) {
       const summary = window.tickerSummaries[ticker] || "";
       copyToClipboard(summary, btn);
@@ -275,6 +288,7 @@ export function getHTMLFrontend(): string {
       placeholder.classList.add('hidden');
       results.classList.add('hidden');
       loading.classList.remove('hidden');
+      document.getElementById('synth-jump-bar').classList.add('hidden');
 
       const pollInterval = 3000;
 
@@ -291,12 +305,25 @@ export function getHTMLFrontend(): string {
 
           const cardsContainer = document.getElementById('synth-ticker-cards');
           cardsContainer.innerHTML = '';
+
+          const jumpBar = document.getElementById('synth-jump-bar');
+          const jumpLinks = document.getElementById('synth-jump-links');
+          jumpLinks.innerHTML = '';
+
+          for (const ticker of tickersList) {
+            const btn = document.createElement('button');
+            btn.className = "text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1.5 rounded-lg border border-gray-700 transition cursor-pointer font-semibold uppercase shrink-0";
+            btn.textContent = ticker;
+            btn.onclick = () => scrollToElement(`ticker-card-${ticker}`);
+            jumpLinks.appendChild(btn);
+          }
           
           const summaries = data.data.summaries;
           for (const ticker of tickersList) {
             const info = summaries[ticker];
             if (!info) continue;
             const card = document.createElement('div');
+            card.id = `ticker-card-${ticker}`;
             card.className = "bg-gray-900 border border-gray-800 p-4 rounded-xl flex flex-col";
             
             if (info.error) {
@@ -340,6 +367,15 @@ export function getHTMLFrontend(): string {
             cardsContainer.appendChild(card);
           }
 
+          if (data.status !== "processing") {
+            const compBtn = document.createElement('button');
+            compBtn.className = "text-xs bg-blue-950/40 hover:bg-blue-900/50 text-blue-300 px-3 py-1.5 rounded-lg border border-blue-900/50 transition cursor-pointer font-semibold shrink-0";
+            compBtn.textContent = "Comparison";
+            compBtn.onclick = () => scrollToElement('synth-synthesis-card');
+            jumpLinks.appendChild(compBtn);
+          }
+          jumpBar.classList.remove('hidden');
+
           if (data.status === "processing") {
             setTimeout(poll, pollInterval);
             loading.classList.remove('hidden');
@@ -372,6 +408,7 @@ export function getHTMLFrontend(): string {
           alert("Error executing comparative analysis: " + err.message);
           loading.classList.add('hidden');
           placeholder.classList.remove('hidden');
+          document.getElementById('synth-jump-bar').classList.add('hidden');
           btn.disabled = false;
           btn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
