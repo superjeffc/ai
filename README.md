@@ -44,19 +44,16 @@ The secrets from your `variables.txt` have been placed in `.dev.vars` for local 
 Secrets are not written to `wrangler.jsonc` for security. You must add the secrets to your Cloudflare Worker production environment. You can set them using the Wrangler CLI or the Cloudflare Dashboard:
 
 #### Option A: Using Wrangler CLI
-Run these commands in your terminal:
+Run this command in your terminal:
 ```bash
-npx wrangler secret put API_SECRET
-# Enter: kite-vscode-secret-9942 when prompted
-
 npx wrangler secret put TAVILY_API_KEY
-# Enter: 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 when prompted
+# Enter your Tavily API Key when prompted
 ```
 
 #### Option B: Cloudflare Dashboard
 1. Go to **Cloudflare Dashboard** > **Workers & Pages** > **ai** > **Settings** > **Variables**.
 2. Under **Environment Variables**, click **Add Variable**.
-3. Add `API_SECRET` and `TAVILY_API_KEY` as type **Secret**.
+3. Add `TAVILY_API_KEY` as type **Secret**.
 4. Click **Save and Deploy**.
 
 ---
