@@ -86,6 +86,7 @@ CRITICAL Programmatic Gating Rules:
 - If a metric (such as Book Value per share, EAD, or CapEx) is not reported for a company, report "Data Unavailable" or "N/A" as specified by the sector rules.
 - You are STRICTLY FORBIDDEN from estimating share counts, calculating implied ratios, or making assumptions to fill missing data.
 - Do NOT make historical projections or assume share balances to make the data fit. If a value is missing, simply output "Data Unavailable".
+- You are STRICTLY FORBIDDEN from including any "Summary of Work", concluding summaries, introductory text, or meta-commentary at the end of the report. The response must end immediately after the final section.
 
 CRITICAL METHODOLOGY RULES:
 - Column order in the Comparative Analysis Table MUST be exactly: ${params.tickersSorted.join(", ")}. Do NOT swap their columns or values.
@@ -153,5 +154,7 @@ Respond strictly in professional Markdown format. Use the headings:
 # Value-Investing Analysis
 # Arguments for a 'Hold' Position
 # Arguments for a 'Buy' Position
-# Arguments for a 'Sell' Position`;
+# Arguments for a 'Sell' Position
+
+Do NOT include any "Summary of Work", concluding outlines, or meta-commentary at the end of the response. End the response immediately after the final argument in the 'Sell' section.`;
 }
