@@ -41,6 +41,7 @@ const downloadPdfBtn = document.getElementById('download-pdf-btn');
 let selectedFile = null;
 let currentCritiqueMarkdown = "";
 let loadingInterval = null;
+let targetPageCount = 1;
 
 const loadingMessages = [
   "Reading resume file...",
@@ -254,6 +255,7 @@ analyzeBtn.addEventListener('click', async () => {
     if (data && typeof data.count === 'number') {
       updateCounter(data.count);
     }
+    targetPageCount = data.targetPageCount || 1;
     
     // Render Critique Markdown
     critiqueContent.innerHTML = marked.parse(currentCritiqueMarkdown);
@@ -277,17 +279,21 @@ analyzeBtn.addEventListener('click', async () => {
       await new Promise(resolve => setTimeout(resolve, 100));
       
       const contentHeight = resumePreviewContent.scrollHeight;
-      console.log(`First pass resume rendered height: ${contentHeight}px`);
+      console.log(`First pass resume rendered height: ${contentHeight}px (Target page count: ${targetPageCount})`);
       
       let directive = "";
-      if (contentHeight > 1050) {
-        directive = "The generated resume is too long and spills onto a second page. Please make the text slightly more compact, reduce vertical margins, and make it fit strictly on exactly a single page.";
-      } else if (contentHeight < 750) {
-        directive = "The generated resume is too short and leaves too much whitespace at the bottom. Please expand the details under work experience, add more description to bullet points, and increase margins/padding slightly to fill the page.";
+      const maxAllowedHeight = targetPageCount * 1050 + (targetPageCount - 1) * 20;
+      const minRequiredHeight = (targetPageCount - 1) * 1123 + 750;
+      
+      if (contentHeight > maxAllowedHeight) {
+        const nextPage = targetPageCount + 1;
+        directive = `The generated resume is too long (${contentHeight}px) and spills onto page ${nextPage}. Please make the text slightly more compact, reduce vertical margins/paddings, and make it fit strictly on exactly ${targetPageCount} page${targetPageCount > 1 ? 's' : ''}.`;
+      } else if (contentHeight < minRequiredHeight) {
+        directive = `The generated resume is too short (${contentHeight}px) for a ${targetPageCount}-page layout. Please expand the details under work experience, add more description to bullet points, and increase margins/padding slightly to fill exactly ${targetPageCount} page${targetPageCount > 1 ? 's' : ''} nicely.`;
       }
       
       if (directive) {
-        console.log(`Height out of bounds (${contentHeight}px). Triggering refinement pass: ${directive}`);
+        console.log(`Height out of bounds (${contentHeight}px vs max:${maxAllowedHeight}px, min:${minRequiredHeight}px). Triggering refinement pass: ${directive}`);
         
         // Show sub-loading status
         loadingStep.textContent = "Optimizing page layout (Pass 2/2)...";
@@ -302,7 +308,8 @@ analyzeBtn.addEventListener('click', async () => {
               isRefinement: true,
               originalCritique: critiquePart,
               originalResumeHtml: resumeHtmlPart,
-              refinementDirective: directive
+              refinementDirective: directive,
+              targetPageCount: targetPageCount
             })
           });
           
