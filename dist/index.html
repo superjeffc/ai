@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Professional Resume Critique — Elite Evaluation</title>
+  <title>Professional Résumé Critique — Elite Evaluation</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
@@ -132,17 +132,17 @@
     <!-- HEADER -->
     <header class="flex flex-col items-center text-center mb-10 shrink-0">
       <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-4 bg-clip-text text-transparent bg-gradient-to-r from-violet-400 via-indigo-400 to-cyan-400">
-        Professional Resume Critique
+        Professional Résumé Critique
       </h1>
       <p class="text-sm sm:text-base text-gray-400 max-w-2xl">
-        Get a rigorous, impact-focused resume evaluation from a simulated Hiring Manager.
+        Get a rigorous, impact-focused résumé evaluation from a simulated Hiring Manager.
       </p>
       <p class="mt-2 text-xs text-gray-500 max-w-xl">
-        Your data is private. Resumes are processed instantly and never saved, stored, or collected.
+        Your data is private. Résumés are processed instantly and never saved, stored, or collected.
       </p>
       <div id="stats-counter" class="mt-5 flex items-center gap-2 bg-slate-900/60 border border-slate-800/80 px-4 py-1.5 rounded-full text-xs text-gray-400 backdrop-blur-md transition-all duration-500 opacity-0 select-none">
         <span class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></span>
-        <span>Resumes evaluated: <strong id="counter-value" class="text-indigo-300 font-bold code-font">0</strong></span>
+        <span>Résumés evaluated: <strong id="counter-value" class="text-indigo-300 font-bold code-font">0</strong></span>
       </div>
 
     </header>
@@ -163,7 +163,7 @@
             </svg>
           </div>
           
-          <h3 class="text-base sm:text-lg font-bold text-white mb-2 pointer-events-none">Drag and drop your PDF resume here</h3>
+          <h3 class="text-base sm:text-lg font-bold text-white mb-2 pointer-events-none">Drag and drop your PDF résumé here</h3>
           <p class="text-xs sm:text-sm text-gray-500 mb-4 pointer-events-none">or click to browse from files</p>
           <span class="text-xs bg-slate-900 border border-slate-800 text-gray-400 px-3 py-1 rounded-full code-font pointer-events-none">PDF Only (Max 5MB)</span>
         </div>
@@ -171,7 +171,7 @@
         <!-- Job Description Input (Optional) -->
         <div class="w-full mt-6 text-left">
           <label for="job-desc-input" class="block text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Target Job Description (Optional)</label>
-          <textarea id="job-desc-input" maxlength="10000" rows="4" placeholder="Paste the target job description here to optimize your resume and get tailored critique suggestions..." class="w-full bg-slate-900/40 border border-slate-800 focus:border-indigo-500/50 rounded-xl p-3 text-sm text-gray-300 placeholder-gray-600 focus:outline-none transition resize-none"></textarea>
+          <textarea id="job-desc-input" maxlength="10000" rows="4" placeholder="Paste the target job description here to optimize your résumé and get tailored critique suggestions..." class="w-full bg-slate-900/40 border border-slate-800 focus:border-indigo-500/50 rounded-xl p-3 text-sm text-gray-300 placeholder-gray-600 focus:outline-none transition resize-none"></textarea>
           <div class="mt-1.5 flex justify-between items-center text-[11px] text-gray-500 px-1 select-none">
             <span id="char-limit-warning" class="text-red-400 opacity-0 transition-opacity duration-200">Approaching character limit</span>
             <span class="ml-auto font-medium"><span id="char-count" class="font-bold text-gray-400 code-font">0</span> / 10,000</span>
@@ -187,7 +187,7 @@
               </svg>
             </div>
             <div class="overflow-hidden">
-              <p class="text-sm font-semibold text-white truncate" id="file-name">resume.pdf</p>
+              <p class="text-sm font-semibold text-white truncate" id="file-name">résumé.pdf</p>
               <p class="text-xs text-gray-500 code-font" id="file-size">0.0 KB</p>
             </div>
           </div>
@@ -223,7 +223,7 @@
             <span class="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-ping"></span>
           </div>
         </div>
-        <h3 class="text-lg font-bold text-white mb-2">Analyzing Resume</h3>
+        <h3 class="text-lg font-bold text-white mb-2">Analyzing Résumé</h3>
         <p class="text-sm text-indigo-400 code-font mb-4" id="loading-step">Parsing uploaded document...</p>
         <div class="w-48 h-1 bg-slate-900 rounded-full overflow-hidden">
           <div class="h-full bg-gradient-to-r from-violet-500 to-cyan-500 animate-pulse" style="width: 100%;"></div>
@@ -266,7 +266,7 @@
             <span>Recruiter Critique</span>
           </button>
           <button id="tab-resume-btn" class="text-xs bg-slate-950/40 border border-slate-900/60 text-gray-400 hover:text-indigo-400 hover:bg-slate-900 px-4 py-2.5 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1.5">
-            <span>Optimized Resume (PDF)</span>
+            <span>Optimized Résumé (PDF)</span>
           </button>
         </div>
 
@@ -285,7 +285,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>
-                <span>Download PDF Resume</span>
+                <span>Download PDF Résumé</span>
               </button>
             </div>
             <!-- The physical looking A4 page wrapper -->

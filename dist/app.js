@@ -48,7 +48,7 @@ let loadingInterval = null;
 let targetPageCount = 1;
 
 const loadingMessages = [
-  "Reading resume file...",
+  "Reading résumé file...",
   "Extracting text content...",
   "Analyzing technical skills matrix...",
   "Evaluating experience and bullet metrics...",
@@ -63,7 +63,7 @@ const loadingMessages = [
   "Reviewing margins and print layout...",
   "Identifying areas for layout improvement...",
   "Generating recruiter critique...",
-  "Polishing rewritten resume suggestions...",
+  "Polishing rewritten résumé suggestions...",
   "Running visual layout checks...",
   "Assembling final critique report..."
 ];
@@ -176,7 +176,7 @@ function handleFileSelect(file) {
   }
 
   if (file.size > 5 * 1024 * 1024) {
-    alert("File size exceeds 5MB. Please upload a smaller PDF resume.");
+    alert("File size exceeds 5MB. Please upload a smaller PDF résumé.");
     return;
   }
 
@@ -334,7 +334,7 @@ analyzeBtn.addEventListener('click', async () => {
       critiquePart = rawCritique;
       resumeHtmlPart = `
         <div style="font-family: sans-serif; padding: 40px; text-align: center; color: #666;">
-          <p>No rewritten resume generated. Check the Critique tab for recommendations.</p>
+          <p>No rewritten résumé generated. Check the Critique tab for recommendations.</p>
         </div>
       `;
     }
@@ -354,14 +354,14 @@ analyzeBtn.addEventListener('click', async () => {
     if (resumePreviewContent) {
       resumePreviewContent.innerHTML = resumeHtmlPart || `
         <div style="font-family: sans-serif; padding: 40px; text-align: center; color: #666;">
-          <p>No rewritten resume generated. Check the Critique tab for recommendations.</p>
+          <p>No rewritten résumé generated. Check the Critique tab for recommendations.</p>
         </div>
       `;
       fitToPageTarget(resumePreviewContent, targetPageCount);
     }
     
     if (extractedMeta) {
-      extractedMeta.textContent = `Processed ${formatBytes(data.extractedTextLength || 0)} of raw resume text`;
+      extractedMeta.textContent = `Processed ${formatBytes(data.extractedTextLength || 0)} of raw résumé text`;
     }
 
 
@@ -372,7 +372,7 @@ analyzeBtn.addEventListener('click', async () => {
 
   } catch (err) {
     console.error("Critique failed:", err);
-    alert(`Resume evaluation failed:\n${err.message || err}`);
+    alert(`Résumé evaluation failed:\n${err.message || err}`);
     if (window.turnstile) window.turnstile.reset();
     // Revert back to upload page
     loadingCard.classList.add('hidden');
@@ -387,7 +387,7 @@ analyzeBtn.addEventListener('click', async () => {
 
 // Instantaneous client-side font sizing refinement loop to match targeted page height
 function fitToPageTarget(element, targetPages) {
-  if (!element || !element.innerHTML.trim() || element.innerHTML.includes('No rewritten resume generated')) {
+  if (!element || !element.innerHTML.trim() || element.innerHTML.includes('No rewritten résumé generated')) {
     return;
   }
   
@@ -497,8 +497,8 @@ if (tabCritiqueBtn && tabResumeBtn && critiquePanel && resumePanel) {
 // Shared PDF generation and download trigger
 function handleDownloadPdf() {
   const element = document.getElementById('resume-preview-content');
-  if (!element || !resumePreviewContent.innerHTML.trim() || resumePreviewContent.innerHTML.includes('No rewritten resume generated')) {
-    alert("No rewritten resume content available to download.");
+  if (!element || !resumePreviewContent.innerHTML.trim() || resumePreviewContent.innerHTML.includes('No rewritten résumé generated')) {
+    alert("No rewritten résumé content available to download.");
     return;
   }
   
