@@ -20,7 +20,7 @@ const resultsCard = document.getElementById('results-card');
 const critiqueContent = document.getElementById('critique-content');
 const extractedMeta = document.getElementById('extracted-meta');
 const copyBtn = document.getElementById('copy-btn');
-const downloadBtn = document.getElementById('download-btn');
+const downloadHtmlTopBtn = document.getElementById('download-html-top-btn');
 const newCritiqueBtn = document.getElementById('new-critique-btn');
 
 // Stats counter DOM elements
@@ -38,12 +38,14 @@ const resumePanel = document.getElementById('resume-panel');
 const resumePreviewContent = document.getElementById('resume-preview-content');
 const downloadPdfBtn = document.getElementById('download-pdf-btn');
 const downloadPdfTopBtn = document.getElementById('download-pdf-top-btn');
+const downloadHtmlBtn = document.getElementById('download-html-btn');
 const jobDescInput = document.getElementById('job-desc-input');
 const charCount = document.getElementById('char-count');
 const charLimitWarning = document.getElementById('char-limit-warning');
 
 let selectedFile = null;
 let currentCritiqueMarkdown = "";
+let currentResumeHtml = "";
 let loadingInterval = null;
 let targetPageCount = 1;
 
@@ -211,6 +213,8 @@ function clearSelectedFile() {
   if (resumePreviewContent) {
     resumePreviewContent.innerHTML = '';
   }
+  currentCritiqueMarkdown = "";
+  currentResumeHtml = "";
 }
 
 function formatBytes(bytes) {
@@ -340,6 +344,7 @@ analyzeBtn.addEventListener('click', async () => {
     }
 
     currentCritiqueMarkdown = critiquePart;
+    currentResumeHtml = resumeHtmlPart;
     
     // Update counter if returned in response
     if (data && typeof data.count === 'number') {
@@ -452,23 +457,52 @@ copyBtn.addEventListener('click', async () => {
   }
 });
 
-// Download markdown report
-downloadBtn.addEventListener('click', () => {
-  if (!currentCritiqueMarkdown) return;
-  const blob = new Blob([currentCritiqueMarkdown], { type: 'text/markdown;charset=utf-8;' });
+// Download HTML report
+function handleDownloadHtml() {
+  if (!currentResumeHtml || currentResumeHtml.includes('No rewritten résumé generated')) {
+    alert("No rewritten résumé content available to download.");
+    return;
+  }
+  
+  // Wrap the HTML content in a proper HTML5 boilerplate to make it a standalone document
+  const standaloneHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Optimized Résumé</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background-color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  ${currentResumeHtml}
+</body>
+</html>`;
+
+  const blob = new Blob([standaloneHtml], { type: 'text/html;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
   
-  // Format file name from uploaded name
-  const originalName = selectedFile ? selectedFile.name.replace('.pdf', '') : 'resume';
-  link.setAttribute('download', `${originalName}_critique.md`);
+  const originalName = selectedFile ? selectedFile.name.replace('.pdf', '') : 'résumé';
+  link.setAttribute('download', `${originalName}_optimized.html`);
   link.style.visibility = 'hidden';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-});
+}
+
+if (downloadHtmlBtn) {
+  downloadHtmlBtn.addEventListener('click', handleDownloadHtml);
+}
+if (downloadHtmlTopBtn) {
+  downloadHtmlTopBtn.addEventListener('click', handleDownloadHtml);
+}
 
 // Reset critique flow
 newCritiqueBtn.addEventListener('click', () => {

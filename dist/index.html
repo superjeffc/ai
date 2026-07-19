@@ -242,11 +242,11 @@
               </svg>
               <span>Copy Markdown</span>
             </button>
-            <button id="download-btn" class="flex-1 sm:flex-initial text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 text-gray-300 px-3.5 py-2 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1.5">
+            <button id="download-html-top-btn" class="flex-1 sm:flex-initial text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 text-gray-300 px-3.5 py-2 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1.5">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
               </svg>
-              <span>Download MD</span>
+              <span>Download HTML</span>
             </button>
             <button id="download-pdf-top-btn" class="flex-1 sm:flex-initial text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 text-gray-300 px-3.5 py-2 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1.5">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
@@ -279,8 +279,14 @@
 
           <!-- Scrollable Optimized Resume Content -->
           <div id="resume-panel" class="flex-1 bg-slate-950/60 border border-slate-800/80 rounded-xl p-5 sm:p-8 backdrop-blur-xl overflow-y-auto flex flex-col hidden">
-            <!-- Download PDF Button inside tab -->
-            <div class="mb-4 flex justify-end shrink-0">
+            <!-- Download Buttons inside tab -->
+            <div class="mb-4 flex justify-end gap-2.5 shrink-0">
+              <button id="download-html-btn" class="text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 text-gray-300 px-4 py-2.5 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                </svg>
+                <span>Download HTML Résumé</span>
+              </button>
               <button id="download-pdf-btn" class="text-xs bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white px-4 py-2.5 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-900/20">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
