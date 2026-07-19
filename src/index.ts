@@ -1,6 +1,8 @@
 export interface Env {
   AI: any;
   API_SECRET: string;
+  CF_CLIENT_ID?: string;
+  CF_CLIENT_SECRET?: string;
 }
 
 export default {
@@ -141,7 +143,9 @@ Return your critique in clean, beautifully structured Markdown (with proper head
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${env.API_SECRET || ""}`
+            "Authorization": `Bearer ${env.API_SECRET || ""}`,
+            "CF-Access-Client-Id": env.CF_CLIENT_ID || "",
+            "CF-Access-Client-Secret": env.CF_CLIENT_SECRET || ""
           },
           body: JSON.stringify({
             systemPrompt,
