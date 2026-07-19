@@ -77,16 +77,20 @@ export default {
         );
       }
 
-      // 3. Convert to an ArrayBuffer
+      // 3. Convert to an ArrayBuffer and then create a clean Blob with explicit type
       const pdfBuffer = await fileEntry.arrayBuffer();
+      const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' });
 
-      // 4. Use Cloudflare's native platform feature to convert the PDF to text/markdown
+      // 4. Call env.AI.toMarkdown with the exact array-of-objects signature
       let resumeMarkdown = "";
       try {
-        const conversionResult = await env.AI.toMarkdown({
-          file: new Uint8Array(pdfBuffer),
-        });
-        resumeMarkdown = conversionResult?.markdown || "";
+        const conversionResult = await env.AI.toMarkdown([
+          {
+            name: fileEntry.name || 'resume.pdf',
+            blob: pdfBlob
+          }
+        ]);
+        resumeMarkdown = conversionResult?.[0]?.data || "";
       } catch (convErr: any) {
         console.error("Native document conversion error:", convErr);
         return new Response(
