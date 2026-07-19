@@ -63,6 +63,91 @@ export default {
     // Extract client IP for rate limiting
     const clientIP = request.headers.get("CF-Connecting-IP") || "anonymous";
 
+    const contentType = request.headers.get("Content-Type") || "";
+    if (contentType.includes("application/json")) {
+      let body: any;
+      try {
+        body = await request.json();
+      } catch (err) {
+        return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      if (body.isRefinement) {
+        const { originalCritique, originalResumeHtml, refinementDirective } = body;
+        
+        // Build refinement system prompt
+        const systemPrompt = `You are an elite technical recruiter and Principal Systems Engineer.
+You previously generated a technical resume evaluation and a rewritten HTML resume.
+Your task is to refine the rewritten HTML resume to satisfy this visual directive:
+"${refinementDirective}"
+
+Ensure the text formatting and sections are updated based on the directive.
+You must return the original critique report unchanged, followed by the delimiter:
+=== REWRITTEN RESUME ===
+Followed by the newly refined and optimized HTML resume.
+
+Guidelines for the refined resume HTML:
+1. Wrap everything inside a single container div (like <div style="font-family: Arial, sans-serif; color: #000000; line-height: 1.35; padding: 0px 10px; box-sizing: border-box;">).
+2. STRICT REQUIREMENT: THE ENTIRE REWRITTEN RESUME MUST FIT ON EXACTLY A SINGLE PAGE. To guarantee this:
+   - Use small, compact font sizes: Name/Header = 18px-20px; Section Titles = 11px-12px; Body text and bullets = 9.5px-10.5px.
+   - Keep spacing extremely tight: margins between sections should be at most 6px, and margins between bullet points should be at most 2px.
+   - Use highly concise and high-impact phrasing to avoid text wrapping onto extra lines.
+3. Make it look professional: use clean headings (e.g. style="font-size: 11px; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 2px; margin-top: 6px; margin-bottom: 3px; color: #000000;"), a compact top header, and technical skills matrix.
+4. ONLY PURE BLACK FONT IS PERMITTED: You must only use pure black color (#000000 or #111111) for all text elements. Do not use any colored text or accent colors.
+5. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.`;
+
+        const userPrompt = `Here is the original critique report:
+${originalCritique}
+
+Please refine the rewritten HTML resume to satisfy this directive: "${refinementDirective}".
+Here is the previous rewritten HTML resume content:
+<resume_data>
+${originalResumeHtml}
+</resume_data>`;
+
+        // Request execution from AGY bridge
+        try {
+          const bridgeResponse = await fetch("https://agy.superjeffc.com/execute", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${env.API_SECRET || ""}`,
+              "CF-Access-Client-Id": env.CF_CLIENT_ID || "",
+              "CF-Access-Client-Secret": env.CF_CLIENT_SECRET || ""
+            },
+            body: JSON.stringify({ systemPrompt, userPrompt })
+          });
+
+          if (!bridgeResponse.ok) {
+            const errText = await bridgeResponse.text();
+            throw new Error(`Bridge returned status ${bridgeResponse.status}: ${errText}`);
+          }
+
+          const critiqueResult = await bridgeResponse.text();
+          
+          return new Response(
+            JSON.stringify({ critique: critiqueResult }),
+            {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" }
+            }
+          );
+        } catch (aiErr: any) {
+          console.error("AGY Bridge refinement error:", aiErr);
+          return new Response(
+            JSON.stringify({ error: `Refinement failed: ${aiErr.message || aiErr}` }),
+            {
+              status: 502,
+              headers: { ...corsHeaders, "Content-Type": "application/json" }
+            }
+          );
+        }
+      }
+    }
+
     // 2. Enforce rate limiting: 1 request per minute per IP (Immediate lock)
     try {
       const isLimited = await env.RESUME_CRITIQUE_KV.get(`rate_limit:${clientIP}`);

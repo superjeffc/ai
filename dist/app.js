@@ -260,10 +260,72 @@ analyzeBtn.addEventListener('click', async () => {
     
     // Render Rewritten HTML Resume
     if (resumePreviewContent) {
-      resumePreviewContent.innerHTML = resumeHtmlPart;
+      resumePreviewContent.innerHTML = resumeHtmlPart || `
+        <div style="font-family: sans-serif; padding: 40px; text-align: center; color: #666;">
+          <p>No rewritten resume generated. Check the Critique tab for recommendations.</p>
+        </div>
+      `;
     }
     
     extractedMeta.textContent = `Processed ${formatBytes(data.extractedTextLength || 0)} of raw resume text`;
+
+    // -------------------------------------------------------------
+    // AUTOMATIC VISUAL REFINEMENT LOOP (Pass 2)
+    // -------------------------------------------------------------
+    if (resumeHtmlPart && !resumeHtmlPart.includes("No rewritten resume generated")) {
+      // Small timeout to allow the browser to lay out the DOM elements
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const contentHeight = resumePreviewContent.scrollHeight;
+      console.log(`First pass resume rendered height: ${contentHeight}px`);
+      
+      let directive = "";
+      if (contentHeight > 1050) {
+        directive = "The generated resume is too long and spills onto a second page. Please make the text slightly more compact, reduce vertical margins, and make it fit strictly on exactly a single page.";
+      } else if (contentHeight < 750) {
+        directive = "The generated resume is too short and leaves too much whitespace at the bottom. Please expand the details under work experience, add more description to bullet points, and increase margins/padding slightly to fill the page.";
+      }
+      
+      if (directive) {
+        console.log(`Height out of bounds (${contentHeight}px). Triggering refinement pass: ${directive}`);
+        
+        // Show sub-loading status
+        loadingStep.textContent = "Optimizing page layout (Pass 2/2)...";
+        resultsCard.classList.add('hidden');
+        loadingCard.classList.remove('hidden');
+        
+        try {
+          const refineResponse = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              isRefinement: true,
+              originalCritique: critiquePart,
+              originalResumeHtml: resumeHtmlPart,
+              refinementDirective: directive
+            })
+          });
+          
+          if (refineResponse.ok) {
+            const refineData = await refineResponse.json();
+            const refinedRaw = refineData.critique || "";
+            
+            if (delimiterRegex.test(refinedRaw)) {
+              const rParts = refinedRaw.split(delimiterRegex);
+              let refinedHtml = rParts[1].trim();
+              refinedHtml = refinedHtml.replace(/^```(html)?/i, "").trim();
+              refinedHtml = refinedHtml.replace(/```$/, "").trim();
+              
+              resumeHtmlPart = refinedHtml;
+              resumePreviewContent.innerHTML = resumeHtmlPart;
+              console.log(`Refinement successful. New height: ${resumePreviewContent.scrollHeight}px`);
+            }
+          }
+        } catch (refErr) {
+          console.warn("Refinement pass failed:", refErr);
+        }
+      }
+    }
 
     // Transition to Results Card
     loadingCard.classList.add('hidden');
