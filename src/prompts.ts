@@ -26,7 +26,8 @@ Guidelines for the refined resume HTML:
    - Use highly concise and high-impact phrasing to avoid text wrapping onto extra lines.
 3. Make it look professional: use clean headings (e.g. style="font-size: 1.1em; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 0.2em; margin-top: 0.6em; margin-bottom: 0.3em; color: #000000;"), and a compact top header. If and only if the resume or target role is for a software engineering role, include a clear skills matrix; otherwise, omit the skills section entirely.
 4. ONLY PURE BLACK FONT IS PERMITTED: You must only use pure black color (#000000 or #111111) for all text elements. Do not use any colored text or accent colors.
-5. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.`;
+5. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.
+6. For the professional experience section, make sure each statement actually has a bullet point for better readability.`;
 }
 
 // Helper constant for interpolation since refinementDirective changes dynamically
