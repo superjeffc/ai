@@ -1,4 +1,15 @@
+// Polyfills for PDF.js compatibility in Cloudflare Workers
+const globalAny: any = globalThis;
+if (!globalAny.window) globalAny.window = globalThis;
+if (!globalAny.document) {
+  globalAny.document = {
+    documentElement: { style: {} },
+    createElement: () => ({ style: {} })
+  };
+}
+
 import { extractText, getDocumentProxy } from "unpdf";
+
 
 export interface Env {
   AI: any;
