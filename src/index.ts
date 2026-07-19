@@ -1,7 +1,3 @@
-import { extractTextFromPDFBuffer } from "./pdf-helper";
-
-
-
 export interface Env {
   AI: any;
 }
@@ -16,7 +12,7 @@ export default {
       "Access-Control-Max-Age": "86400",
     };
 
-    // CORS preflight handling
+    // 1. Handle CORS Preflight
     if (request.method === "OPTIONS") {
       return new Response(null, {
         status: 204,
@@ -36,7 +32,6 @@ export default {
       );
     }
 
-
     if (request.method !== "POST") {
       return new Response(
         JSON.stringify({ error: `Method Not Allowed. Expected POST, received ${request.method}.` }),
@@ -47,20 +42,8 @@ export default {
       );
     }
 
-
-    // Process multipart/form-data
     try {
-      const contentType = request.headers.get("content-type") || "";
-      if (!contentType.includes("multipart/form-data")) {
-        return new Response(
-          JSON.stringify({ error: "Content-Type must be multipart/form-data" }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-
+      // 2. Extract the file from FormData
       const formData = await request.formData();
       let fileEntry: File | null = null;
 
@@ -74,7 +57,7 @@ export default {
 
       if (!fileEntry) {
         return new Response(
-          JSON.stringify({ error: "No PDF file found in the multipart/form-data payload under any field name." }),
+          JSON.stringify({ error: "No PDF file found in the multipart/form-data payload." }),
           {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -94,16 +77,20 @@ export default {
         );
       }
 
-      // Extract ArrayBuffer and call the edge-safe helper
-      const arrayBuffer = await fileEntry.arrayBuffer();
+      // 3. Convert to an ArrayBuffer
+      const pdfBuffer = await fileEntry.arrayBuffer();
 
-      let resumeText = "";
+      // 4. Use Cloudflare's native platform feature to convert the PDF to text/markdown
+      let resumeMarkdown = "";
       try {
-        resumeText = await extractTextFromPDFBuffer(arrayBuffer);
-      } catch (pdfErr: any) {
-        console.error("PDF Parsing error:", pdfErr);
+        const conversionResult = await env.AI.toMarkdown({
+          file: new Uint8Array(pdfBuffer),
+        });
+        resumeMarkdown = conversionResult?.markdown || "";
+      } catch (convErr: any) {
+        console.error("Native document conversion error:", convErr);
         return new Response(
-          JSON.stringify({ error: `Failed to parse PDF document: ${pdfErr.message || pdfErr}` }),
+          JSON.stringify({ error: `Failed to extract text from PDF natively: ${convErr.message || convErr}` }),
           {
             status: 422,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -111,9 +98,9 @@ export default {
         );
       }
 
-      if (!resumeText || resumeText.trim().length === 0) {
+      if (!resumeMarkdown || resumeMarkdown.trim().length === 0) {
         return new Response(
-          JSON.stringify({ error: "Could not extract any text from the PDF. Ensure it contains text selectable elements (not scanned images)." }),
+          JSON.stringify({ error: "Failed to extract legible text using native parser." }),
           {
             status: 422,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -121,7 +108,7 @@ export default {
         );
       }
 
-      // Construct prompts for Llama 3.1
+      // 5. Build the CS-specialized prompt
       const systemPrompt = `You are an elite technical recruiter and Principal Systems Engineer specializing in evaluating candidates for highly competitive, deep-tech engineering roles (e.g., Systems Engineering, Distributed Systems, Kernel Development, Compilers, High-Performance Computing, and Infrastructure Engineering).
 
 Analyze the candidate's resume text and provide a rigorous, objective, and highly constructive critique tailored to Computer Science standards. Evaluate the resume strictly on:
@@ -142,22 +129,15 @@ Analyze the candidate's resume text and provide a rigorous, objective, and highl
 
 Return your critique in clean, beautifully structured Markdown (with proper headings, lists, and bold text). Be direct, professional, and actionable. Do not output conversational preamble or postamble; start directly with the Markdown report.`;
 
-      const userPrompt = `Here is the candidate's resume content extracted from the PDF:
-
----
-${resumeText}
----
-
-Provide the computer science resume critique.`;
-
-      // Call Cloudflare Workers AI with Llama 3.1
+      // 6. Request evaluation from the LLM engine
       let aiResult;
       try {
         aiResult = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fp8", {
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt }
-          ]
+            { role: "user", content: `Here is my resume text parsed from PDF:\n\n${resumeMarkdown}` }
+          ],
+          max_tokens: 2048
         });
       } catch (aiErr: any) {
         console.error("Workers AI error:", aiErr);
@@ -181,11 +161,11 @@ Provide the computer science resume critique.`;
         );
       }
 
-      // Return critique in JSON response format
+      // 7. Return the completed critique
       return new Response(
         JSON.stringify({
           critique,
-          extractedTextLength: resumeText.length
+          extractedTextLength: resumeMarkdown.length
         }),
         {
           status: 200,
@@ -196,13 +176,13 @@ Provide the computer science resume critique.`;
         }
       );
 
-    } catch (err: any) {
-      console.error("Request handling error:", err);
+    } catch (error: any) {
+      console.error("Unhandled error:", error);
       return new Response(
-        JSON.stringify({ error: `Internal Server Error: ${err.message || err}` }),
+        JSON.stringify({ error: error.message || error }),
         {
           status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         }
       );
     }
