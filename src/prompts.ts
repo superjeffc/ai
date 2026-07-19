@@ -78,7 +78,8 @@ Analyze the resume strictly on:
    - Are achievements quantified using specific business-level, operational, or industry metrics (e.g., revenue generated, cost reductions, percentage increases in efficiency, project delivery time reduced, or scale of operations)?
    - Are the action verbs strong, active, and professionally descriptive (e.g., "orchestrated", "engineered", "streamlined", "spearheaded", "designed") instead of passive/generic (e.g., "helped", "assisted", "worked on")?
    - Do the bullet points explain the *how* and the *impact* of the achievements, rather than just listing daily tasks.
-
+   - Make sure there are actually bullet points for each statement so that it is easier to read
+   
 3. **Noise Reduction & Layout Whitespace**:
    - Suggest removing or heavily condensing non-professional or unrelated experiences that waste valuable vertical whitespace.
    - Advise on focusing formatting and structure to maximize layout efficiency.
