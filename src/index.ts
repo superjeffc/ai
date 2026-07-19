@@ -37,13 +37,14 @@ export default {
 
     if (request.method !== "POST") {
       return new Response(
-        JSON.stringify({ error: "Method Not Allowed" }),
+        JSON.stringify({ error: `Method Not Allowed. Expected POST, received ${request.method}.` }),
         {
           status: 405,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
+
 
     // Process multipart/form-data
     try {

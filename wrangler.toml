@@ -6,6 +6,7 @@ compatibility_date = "2026-07-15"
 binding = "AI"
 
 routes = [
-  "critique.superjeffc.com/api/*"
+  "critique.superjeffc.com/api*"
 ]
+
 
