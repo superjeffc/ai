@@ -7,6 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   
   <style>
@@ -252,9 +253,43 @@
           </div>
         </div>
 
-        <!-- Scrollable Critique Content -->
-        <div class="flex-1 bg-slate-950/60 border border-slate-800/80 rounded-xl p-5 sm:p-8 backdrop-blur-xl overflow-y-auto">
-          <div id="critique-content" class="prose max-w-none"></div>
+        <!-- Tabs selector -->
+        <div class="flex items-center gap-2 mb-3 shrink-0">
+          <button id="tab-critique-btn" class="text-xs bg-slate-900 border border-slate-800/80 text-indigo-400 px-4 py-2.5 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1.5 border-b-2 border-indigo-500">
+            <span>Recruiter Critique</span>
+          </button>
+          <button id="tab-resume-btn" class="text-xs bg-slate-950/40 border border-slate-900/60 text-gray-400 hover:text-indigo-400 hover:bg-slate-900 px-4 py-2.5 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1.5">
+            <span>Optimized Resume (PDF)</span>
+          </button>
+        </div>
+
+        <!-- Content Panels -->
+        <div class="flex-1 flex flex-col min-h-0 relative">
+          <!-- Scrollable Critique Content -->
+          <div id="critique-panel" class="flex-1 bg-slate-950/60 border border-slate-800/80 rounded-xl p-5 sm:p-8 backdrop-blur-xl overflow-y-auto">
+            <div id="critique-content" class="prose max-w-none"></div>
+          </div>
+
+          <!-- Scrollable Optimized Resume Content -->
+          <div id="resume-panel" class="flex-1 bg-slate-950/60 border border-slate-800/80 rounded-xl p-5 sm:p-8 backdrop-blur-xl overflow-y-auto flex flex-col hidden">
+            <!-- Download PDF Button inside tab -->
+            <div class="mb-4 flex justify-end shrink-0">
+              <button id="download-pdf-btn" class="text-xs bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white px-4 py-2.5 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-900/20">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                <span>Download PDF Resume</span>
+              </button>
+            </div>
+            <!-- The physical looking A4 page wrapper -->
+            <div class="flex-1 bg-slate-900/40 border border-slate-800/80 rounded-lg p-6 overflow-auto">
+              <div id="resume-preview-container" class="bg-white text-black p-12 shadow-2xl mx-auto max-w-[800px]" style="min-height: 1000px;">
+                <div id="resume-preview-content" class="prose max-w-none">
+                  <!-- Rendered HTML resume goes here -->
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
       </div>

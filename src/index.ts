@@ -193,7 +193,16 @@ Analyze the resume strictly on:
    - Suggest removing or heavily condensing non-technical or unrelated experiences (e.g., cashier roles, unrelated student societies, basic tutoring) that waste valuable vertical whitespace.
    - Advise on focusing formatting and structure to maximize layout efficiency.
 
-Return your critique in clean, beautifully structured Markdown (with proper headings, lists, and bold text). Be direct, professional, and actionable. Do not output conversational preamble or postamble; start directly with the Markdown report.`;
+Return your critique in clean, beautifully structured Markdown (with proper headings, lists, and bold text). Be direct, professional, and actionable. Do not output conversational preamble or postamble; start directly with the Markdown report.
+
+At the very end of your response, output the exact delimiter:
+=== REWRITTEN RESUME ===
+Followed by the fully rewritten and optimized resume based on your critique, formatted as a single, self-contained HTML block.
+Guidelines for the rewritten resume HTML:
+1. Wrap everything inside a single container div (like <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.5; padding: 20px;">).
+2. Make it look professional: use clean headings, proper margins, a simple top header (candidate's name, email, links), a logical technical skills matrix layout, and well-spaced work experience sections with bullet points.
+3. Keep the styling clean, modern, and professional (light background, black text, clean margins, good line height). Use standard inline CSS styles (e.g. style="font-size: 1.2rem; border-bottom: 2px solid #333; padding-bottom: 4px; margin-top: 15px;") for consistent rendering. Do not output any markdown formatting inside this HTML section.
+4. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.`;
 
       // 7. Request evaluation from the AGY bridge server
       let critique = "";

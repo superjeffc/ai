@@ -30,6 +30,14 @@ const counterValue = document.getElementById('counter-value');
 // Turnstile widget DOM elements
 const turnstileContainer = document.getElementById('turnstile-container');
 
+// Tabs and Resume Preview DOM elements
+const tabCritiqueBtn = document.getElementById('tab-critique-btn');
+const tabResumeBtn = document.getElementById('tab-resume-btn');
+const critiquePanel = document.getElementById('critique-panel');
+const resumePanel = document.getElementById('resume-panel');
+const resumePreviewContent = document.getElementById('resume-preview-content');
+const downloadPdfBtn = document.getElementById('download-pdf-btn');
+
 let selectedFile = null;
 let currentCritiqueMarkdown = "";
 let loadingInterval = null;
@@ -115,6 +123,17 @@ function clearSelectedFile() {
   analyzeBtn.classList.add('hidden');
   if (turnstileContainer) turnstileContainer.classList.add('hidden');
   if (window.turnstile) window.turnstile.reset();
+
+  // Reset tab states
+  if (tabCritiqueBtn && tabResumeBtn && critiquePanel && resumePanel) {
+    critiquePanel.classList.remove('hidden');
+    resumePanel.classList.add('hidden');
+    tabCritiqueBtn.className = "text-xs bg-slate-900 border border-slate-800/80 text-indigo-400 px-4 py-2.5 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1.5 border-b-2 border-indigo-500";
+    tabResumeBtn.className = "text-xs bg-slate-950/40 border border-slate-900/60 text-gray-400 hover:text-indigo-400 hover:bg-slate-900 px-4 py-2.5 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1.5";
+  }
+  if (resumePreviewContent) {
+    resumePreviewContent.innerHTML = '';
+  }
 }
 
 function formatBytes(bytes) {
@@ -206,7 +225,25 @@ analyzeBtn.addEventListener('click', async () => {
       throw new Error(`Failed to parse API response as JSON: ${parseErr.message}`);
     }
 
-    currentCritiqueMarkdown = data.critique;
+    const rawCritique = data.critique || "";
+    let critiquePart = rawCritique;
+    let resumeHtmlPart = "";
+
+    const delimiter = "=== REWRITTEN RESUME ===";
+    if (rawCritique.includes(delimiter)) {
+      const parts = rawCritique.split(delimiter);
+      critiquePart = parts[0].trim();
+      resumeHtmlPart = parts[1].trim();
+    } else {
+      critiquePart = rawCritique;
+      resumeHtmlPart = `
+        <div style="font-family: sans-serif; padding: 40px; text-align: center; color: #666;">
+          <p>No rewritten resume generated. Check the Critique tab for recommendations.</p>
+        </div>
+      `;
+    }
+
+    currentCritiqueMarkdown = critiquePart;
     
     // Update counter if returned in response
     if (data && typeof data.count === 'number') {
@@ -215,6 +252,12 @@ analyzeBtn.addEventListener('click', async () => {
     
     // Render Critique Markdown
     critiqueContent.innerHTML = marked.parse(currentCritiqueMarkdown);
+    
+    // Render Rewritten HTML Resume
+    if (resumePreviewContent) {
+      resumePreviewContent.innerHTML = resumeHtmlPart;
+    }
+    
     extractedMeta.textContent = `Processed ${formatBytes(data.extractedTextLength || 0)} of raw resume text`;
 
     // Transition to Results Card
@@ -279,6 +322,57 @@ newCritiqueBtn.addEventListener('click', () => {
   clearSelectedFile();
   uploadCard.classList.remove('hidden');
 });
+
+// Tab Switching
+if (tabCritiqueBtn && tabResumeBtn && critiquePanel && resumePanel) {
+  tabCritiqueBtn.addEventListener('click', () => {
+    critiquePanel.classList.remove('hidden');
+    resumePanel.classList.add('hidden');
+    tabCritiqueBtn.className = "text-xs bg-slate-900 border border-slate-800/80 text-indigo-400 px-4 py-2.5 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1.5 border-b-2 border-indigo-500";
+    tabResumeBtn.className = "text-xs bg-slate-950/40 border border-slate-900/60 text-gray-400 hover:text-indigo-400 hover:bg-slate-900 px-4 py-2.5 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1.5";
+  });
+
+  tabResumeBtn.addEventListener('click', () => {
+    resumePanel.classList.remove('hidden');
+    critiquePanel.classList.add('hidden');
+    tabResumeBtn.className = "text-xs bg-slate-900 border border-slate-800/80 text-indigo-400 px-4 py-2.5 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1.5 border-b-2 border-indigo-500";
+    tabCritiqueBtn.className = "text-xs bg-slate-950/40 border border-slate-900/60 text-gray-400 hover:text-indigo-400 hover:bg-slate-900 px-4 py-2.5 rounded-lg font-semibold transition cursor-pointer flex items-center gap-1.5";
+  });
+}
+
+// Download PDF resume
+if (downloadPdfBtn) {
+  downloadPdfBtn.addEventListener('click', () => {
+    const element = document.getElementById('resume-preview-container');
+    if (!element || !resumePreviewContent.innerHTML.trim() || resumePreviewContent.innerHTML.includes('No rewritten resume generated')) {
+      alert("No rewritten resume content available to download.");
+      return;
+    }
+    
+    const originalName = selectedFile ? selectedFile.name.replace('.pdf', '') : 'resume';
+    const opt = {
+      margin:       0.2,
+      filename:     `${originalName}_optimized.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    
+    downloadPdfBtn.disabled = true;
+    const oldText = downloadPdfBtn.innerHTML;
+    downloadPdfBtn.innerHTML = "<span>Generating PDF...</span>";
+    
+    html2pdf().set(opt).from(element).save().then(() => {
+      downloadPdfBtn.disabled = false;
+      downloadPdfBtn.innerHTML = oldText;
+    }).catch(err => {
+      console.error("PDF generation failed:", err);
+      alert("Failed to generate PDF. Please try again.");
+      downloadPdfBtn.disabled = false;
+      downloadPdfBtn.innerHTML = oldText;
+    });
+  });
+}
 
 // Fetch and display stats counter
 async function fetchStats() {
