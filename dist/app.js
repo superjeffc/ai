@@ -27,6 +27,9 @@ const newCritiqueBtn = document.getElementById('new-critique-btn');
 const statsCounter = document.getElementById('stats-counter');
 const counterValue = document.getElementById('counter-value');
 
+// Turnstile widget DOM elements
+const turnstileContainer = document.getElementById('turnstile-container');
+
 let selectedFile = null;
 let currentCritiqueMarkdown = "";
 let loadingInterval = null;
@@ -102,6 +105,7 @@ function handleFileSelect(file) {
   
   fileInfo.classList.remove('hidden');
   analyzeBtn.classList.remove('hidden');
+  if (turnstileContainer) turnstileContainer.classList.remove('hidden');
 }
 
 function clearSelectedFile() {
@@ -109,6 +113,8 @@ function clearSelectedFile() {
   fileInput.value = '';
   fileInfo.classList.add('hidden');
   analyzeBtn.classList.add('hidden');
+  if (turnstileContainer) turnstileContainer.classList.add('hidden');
+  if (window.turnstile) window.turnstile.reset();
 }
 
 function formatBytes(bytes) {
@@ -122,6 +128,38 @@ function formatBytes(bytes) {
 // Start analysis upload process
 analyzeBtn.addEventListener('click', async () => {
   if (!selectedFile) return;
+
+  // 1. Retrieve Turnstile token
+  const token = window.turnstile ? window.turnstile.getResponse() : "";
+  if (!token) {
+    alert("Please complete the Turnstile verification first.");
+    return;
+  }
+
+  // 2. Validate token against the siteverify Worker
+  try {
+    const verifyResponse = await fetch("https://turnstile-siteverify-cs-resume-critique.superjeffc.workers.dev", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token })
+    });
+
+    if (!verifyResponse.ok) {
+      throw new Error(`Verification service returned status ${verifyResponse.status}`);
+    }
+
+    const verifyData = await verifyResponse.json();
+    if (!verifyData.success) {
+      alert("Turnstile verification failed. Please try again.");
+      if (window.turnstile) window.turnstile.reset();
+      return;
+    }
+  } catch (err) {
+    console.error("Turnstile verification error:", err);
+    alert(`Verification failed: ${err.message || err}. Please try again.`);
+    if (window.turnstile) window.turnstile.reset();
+    return;
+  }
 
   // Show Loading Screen
   uploadCard.classList.add('hidden');
