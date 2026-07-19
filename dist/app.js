@@ -66,7 +66,14 @@ const loadingMessages = [
   "Assembling final critique report..."
 ];
 
-// Initialize Drag & Drop Events
+// Prevent default drag behaviors for the entire window to stop the browser from opening files
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+  window.addEventListener(eventName, (e) => {
+    e.preventDefault();
+  }, false);
+});
+
+// Initialize Drag & Drop Events for the drop zone
 ['dragenter', 'dragover'].forEach(eventName => {
   dropZone.addEventListener(eventName, (e) => {
     e.preventDefault();
@@ -82,6 +89,7 @@ const loadingMessages = [
 });
 
 dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
   const dt = e.dataTransfer;
   const files = dt.files;
   if (files.length > 0) {

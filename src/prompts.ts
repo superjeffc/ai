@@ -72,6 +72,7 @@ Analyze the resume strictly on:
    - Are industry-specific methodologies, technical tools, soft skills, and core competencies categorized logically?
    - Ensure advanced, specialized skill sets are grouped distinctly from common baseline tools or generic workflows.
    - Point out buzzword clutter, cliches, or inclusion of very basic tools (like generic text editors, office suites, or standard chat tools) that dilute professional credibility.
+   - If the skills are not towards the top of the resume, would it make better sense to put them there?
 
 2. **Bullet Point Impact & Performance Metrics**:
    - Are achievements quantified using specific business-level, operational, or industry metrics (e.g., revenue generated, cost reductions, percentage increases in efficiency, project delivery time reduced, or scale of operations)?
