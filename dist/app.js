@@ -564,44 +564,85 @@ function handleDownloadPdf() {
     btn.innerHTML = "<span>Generating PDF...</span>";
   });
   
-  // Multi-pass page fitting logic
+  // Binary search page fitting logic
   const targetPages = targetPageCount || 1;
-  let currentScale = parseFloat(originalFontSize) || 1.0;
+  const originalScale = parseFloat(originalFontSize) || 1.0;
   
-  function runPdfGenerationPass(attempt = 1) {
-    console.log(`PDF generation pass ${attempt}: scaling at ${currentScale}em`);
-    element.style.fontSize = `${currentScale}em`;
+  // 1. Fast initial pass to see if the original size fits
+  element.style.fontSize = `${originalScale}em`;
+  html2pdf().set(opt).from(element).toPdf().get('pdf').then((pdf) => {
+    const initialPages = pdf.internal.getNumberOfPages();
+    console.log(`Initial page check: PDF has ${initialPages} pages (Target: ${targetPages})`);
     
-    html2pdf().set(opt).from(element).toPdf().get('pdf').then((pdf) => {
-      const actualPages = pdf.internal.getNumberOfPages();
-      console.log(`Pass ${attempt} result: PDF has ${actualPages} pages (Target: ${targetPages})`);
+    if (initialPages <= targetPages) {
+      console.log("Original layout fits! Saving immediately.");
+      html2pdf().set(opt).from(element).save().then(() => {
+        restoreStyles();
+        enableButtons();
+      }).catch(err => {
+        console.error("PDF save failed:", err);
+        alert("Failed to generate PDF. Please try again.");
+        restoreStyles();
+        enableButtons();
+      });
+    } else {
+      console.log("Original layout spilled over. Commencing binary search...");
+      let low = 0.65;
+      let high = originalScale;
+      let bestFitScale = low; // Fallback
       
-      if (actualPages > targetPages && currentScale > 0.65 && attempt < 4) {
-        // PDF is too long, shrink slightly and try again
-        currentScale -= 0.02;
-        runPdfGenerationPass(attempt + 1);
-      } else {
-        // PDF fits target pages (or we can't shrink further) - trigger download
-        html2pdf().set(opt).from(element).save().then(() => {
-          restoreStyles();
-          enableButtons();
+      function runBinarySearchPass(attempt = 1) {
+        if (attempt > 7 || (high - low) < 0.005) {
+          console.log(`Binary search completed in ${attempt - 1} passes. Optimal scale: ${bestFitScale.toFixed(4)}em`);
+          element.style.fontSize = `${bestFitScale}em`;
+          
+          html2pdf().set(opt).from(element).save().then(() => {
+            restoreStyles();
+            enableButtons();
+          }).catch(err => {
+            console.error("PDF save failed:", err);
+            alert("Failed to generate PDF. Please try again.");
+            restoreStyles();
+            enableButtons();
+          });
+          return;
+        }
+        
+        const mid = (low + high) / 2;
+        console.log(`Binary search pass ${attempt}: testing scale at ${mid.toFixed(4)}em (low: ${low.toFixed(4)}, high: ${high.toFixed(4)})`);
+        element.style.fontSize = `${mid}em`;
+        
+        html2pdf().set(opt).from(element).toPdf().get('pdf').then((pdf) => {
+          const actualPages = pdf.internal.getNumberOfPages();
+          console.log(`Pass ${attempt} result: PDF has ${actualPages} pages (Target: ${targetPages})`);
+          
+          if (actualPages > targetPages) {
+            // Too large, search lower half
+            high = mid;
+            runBinarySearchPass(attempt + 1);
+          } else {
+            // Fits, record and search upper half
+            bestFitScale = mid;
+            low = mid;
+            runBinarySearchPass(attempt + 1);
+          }
         }).catch(err => {
-          console.error("PDF save failed:", err);
+          console.error(`PDF generation pass ${attempt} failed:`, err);
           alert("Failed to generate PDF. Please try again.");
           restoreStyles();
           enableButtons();
         });
       }
-    }).catch(err => {
-      console.error(`PDF generation pass ${attempt} failed:`, err);
-      alert("Failed to generate PDF. Please try again.");
-      restoreStyles();
-      enableButtons();
-    });
-  }
-  
-  // Start the first pass
-  runPdfGenerationPass(1);
+      
+      // Start binary search loop
+      runBinarySearchPass(1);
+    }
+  }).catch(err => {
+    console.error("Initial page check failed:", err);
+    alert("Failed to generate PDF. Please try again.");
+    restoreStyles();
+    enableButtons();
+  });
 }
 
 if (downloadPdfBtn) {
