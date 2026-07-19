@@ -37,6 +37,7 @@ const critiquePanel = document.getElementById('critique-panel');
 const resumePanel = document.getElementById('resume-panel');
 const resumePreviewContent = document.getElementById('resume-preview-content');
 const downloadPdfBtn = document.getElementById('download-pdf-btn');
+const downloadPdfTopBtn = document.getElementById('download-pdf-top-btn');
 
 let selectedFile = null;
 let currentCritiqueMarkdown = "";
@@ -48,9 +49,19 @@ const loadingMessages = [
   "Extracting text content...",
   "Analyzing technical skills matrix...",
   "Evaluating experience and bullet metrics...",
+  "Evaluating professional experience spacing...",
+  "Synthesizing formatting suggestions...",
+  "Checking bullet point action verb alignment...",
+  "Aggregating systems engineering feedback...",
+  "Optimizing page content density...",
+  "Parsing technical keyword groups...",
+  "Organizing credentials and headers...",
+  "Structuring education and details...",
+  "Reviewing margins and print layout...",
   "Identifying areas for layout improvement...",
   "Generating recruiter critique...",
   "Polishing rewritten resume suggestions...",
+  "Running visual layout checks...",
   "Assembling final critique report..."
 ];
 
@@ -473,79 +484,94 @@ if (tabCritiqueBtn && tabResumeBtn && critiquePanel && resumePanel) {
   });
 }
 
-// Download PDF resume
-if (downloadPdfBtn) {
-  downloadPdfBtn.addEventListener('click', () => {
-    const element = document.getElementById('resume-preview-content');
-    if (!element || !resumePreviewContent.innerHTML.trim() || resumePreviewContent.innerHTML.includes('No rewritten resume generated')) {
-      alert("No rewritten resume content available to download.");
-      return;
-    }
+// Shared PDF generation and download trigger
+function handleDownloadPdf() {
+  const element = document.getElementById('resume-preview-content');
+  if (!element || !resumePreviewContent.innerHTML.trim() || resumePreviewContent.innerHTML.includes('No rewritten resume generated')) {
+    alert("No rewritten resume content available to download.");
+    return;
+  }
+  
+  const previewContainer = document.getElementById('resume-preview-container');
+  const scrollParent = previewContainer ? previewContainer.parentElement : null;
+  
+  // Save original styles/scroll position
+  const originalPadding = previewContainer ? previewContainer.style.padding : '';
+  const originalMinHeight = previewContainer ? previewContainer.style.minHeight : '';
+  const originalScrollTop = scrollParent ? scrollParent.scrollTop : 0;
+  
+  // Temporarily clear styling constraints and scroll to top to prevent html2canvas offsets
+  if (previewContainer) {
+    previewContainer.style.padding = '0px';
+    previewContainer.style.minHeight = '0px';
+  }
+  if (scrollParent) {
+    scrollParent.scrollTop = 0;
+  }
+  
+  const originalName = selectedFile ? selectedFile.name.replace('.pdf', '') : 'resume';
+  const opt = {
+    margin:       [0.12, 0.15, 0.12, 0.15],
+    filename:     `${originalName}_optimized.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { 
+      scale: 2, 
+      useCORS: true, 
+      letterRendering: true,
+      scrollX: 0,
+      scrollY: 0
+    },
+    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+  };
+  
+  const buttonsToDisable = [];
+  if (downloadPdfBtn) buttonsToDisable.push(downloadPdfBtn);
+  if (downloadPdfTopBtn) buttonsToDisable.push(downloadPdfTopBtn);
+  
+  const oldTexts = buttonsToDisable.map(btn => btn.innerHTML);
+  buttonsToDisable.forEach(btn => {
+    btn.disabled = true;
+    btn.innerHTML = "<span>Generating PDF...</span>";
+  });
+  
+  html2pdf().set(opt).from(element).save().then(() => {
+    buttonsToDisable.forEach((btn, idx) => {
+      btn.disabled = false;
+      btn.innerHTML = oldTexts[idx];
+    });
     
-    const previewContainer = document.getElementById('resume-preview-container');
-    const scrollParent = previewContainer ? previewContainer.parentElement : null;
-    
-    // Save original styles/scroll position
-    const originalPadding = previewContainer ? previewContainer.style.padding : '';
-    const originalMinHeight = previewContainer ? previewContainer.style.minHeight : '';
-    const originalScrollTop = scrollParent ? scrollParent.scrollTop : 0;
-    
-    // Temporarily clear styling constraints and scroll to top to prevent html2canvas offsets
+    // Restore styles and scroll position
     if (previewContainer) {
-      previewContainer.style.padding = '0px';
-      previewContainer.style.minHeight = '0px';
+      previewContainer.style.padding = originalPadding;
+      previewContainer.style.minHeight = originalMinHeight;
     }
     if (scrollParent) {
-      scrollParent.scrollTop = 0;
+      scrollParent.scrollTop = originalScrollTop;
     }
-    
-    const originalName = selectedFile ? selectedFile.name.replace('.pdf', '') : 'resume';
-    const opt = {
-      margin:       [0.12, 0.15, 0.12, 0.15],
-      filename:     `${originalName}_optimized.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { 
-        scale: 2, 
-        useCORS: true, 
-        letterRendering: true,
-        scrollX: 0,
-        scrollY: 0
-      },
-      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-    };
-    
-    downloadPdfBtn.disabled = true;
-    const oldText = downloadPdfBtn.innerHTML;
-    downloadPdfBtn.innerHTML = "<span>Generating PDF...</span>";
-    
-    html2pdf().set(opt).from(element).save().then(() => {
-      downloadPdfBtn.disabled = false;
-      downloadPdfBtn.innerHTML = oldText;
-      
-      // Restore styles and scroll position
-      if (previewContainer) {
-        previewContainer.style.padding = originalPadding;
-        previewContainer.style.minHeight = originalMinHeight;
-      }
-      if (scrollParent) {
-        scrollParent.scrollTop = originalScrollTop;
-      }
-    }).catch(err => {
-      console.error("PDF generation failed:", err);
-      alert("Failed to generate PDF. Please try again.");
-      downloadPdfBtn.disabled = false;
-      downloadPdfBtn.innerHTML = oldText;
-      
-      // Restore styles and scroll position
-      if (previewContainer) {
-        previewContainer.style.padding = originalPadding;
-        previewContainer.style.minHeight = originalMinHeight;
-      }
-      if (scrollParent) {
-        scrollParent.scrollTop = originalScrollTop;
-      }
+  }).catch(err => {
+    console.error("PDF generation failed:", err);
+    alert("Failed to generate PDF. Please try again.");
+    buttonsToDisable.forEach((btn, idx) => {
+      btn.disabled = false;
+      btn.innerHTML = oldTexts[idx];
     });
+    
+    // Restore styles and scroll position
+    if (previewContainer) {
+      previewContainer.style.padding = originalPadding;
+      previewContainer.style.minHeight = originalMinHeight;
+    }
+    if (scrollParent) {
+      scrollParent.scrollTop = originalScrollTop;
+    }
   });
+}
+
+if (downloadPdfBtn) {
+  downloadPdfBtn.addEventListener('click', handleDownloadPdf);
+}
+if (downloadPdfTopBtn) {
+  downloadPdfTopBtn.addEventListener('click', handleDownloadPdf);
 }
 
 // Fetch and display stats counter

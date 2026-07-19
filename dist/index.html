@@ -135,7 +135,7 @@
         Software Engineer Resume Critique
       </h1>
       <p class="text-sm sm:text-base text-gray-400 max-w-xl">
-        Get a brutal, systems-oriented resume evaluation from a simulated Principal Systems Engineer. Runs entirely in-memory on Cloudflare Workers AI. No files, texts, or personal data are stored, saved, or collected.
+        Get a brutal, systems-oriented resume evaluation from a simulated Principal Systems Engineer. Runs entirely in-memory. No files, texts, or personal data are stored, saved, or collected.
       </p>
       <div id="stats-counter" class="mt-5 flex items-center gap-2 bg-slate-900/60 border border-slate-800/80 px-4 py-1.5 rounded-full text-xs text-gray-400 backdrop-blur-md transition-all duration-500 opacity-0 select-none">
         <span class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></span>
@@ -234,7 +234,7 @@
             </div>
           </div>
           
-          <div class="flex items-center gap-2.5">
+          <div class="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
             <button id="copy-btn" class="flex-1 sm:flex-initial text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 text-gray-300 px-3.5 py-2 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1.5">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H5.25m11.9-3.664A2.251 2.251 0 0015 2.25h-1.5a2.251 2.251 0 00-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M16.5 7.5h.75m-.75 3h.75m-.75 3h.75M6.75 21h10.5a2.25 2.25 0 002.25-2.25V7.5H6.75v13.5z" />
@@ -247,7 +247,13 @@
               </svg>
               <span>Download MD</span>
             </button>
-            <button id="new-critique-btn" class="text-xs bg-indigo-900/40 hover:bg-indigo-900/60 border border-indigo-800/50 text-indigo-300 px-3.5 py-2 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1">
+            <button id="download-pdf-top-btn" class="flex-1 sm:flex-initial text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 text-gray-300 px-3.5 py-2 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              <span>Download PDF</span>
+            </button>
+            <button id="new-critique-btn" class="flex-1 sm:flex-initial text-xs bg-indigo-900/40 hover:bg-indigo-900/60 border border-indigo-800/50 text-indigo-300 px-3.5 py-2 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1">
               <span>New Critique</span>
             </button>
           </div>
