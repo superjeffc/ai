@@ -6,7 +6,5 @@ compatibility_date = "2026-07-15"
 binding = "AI"
 
 routes = [
-  "critique.superjeffc.com/api*"
+  { pattern = "critique.superjeffc.com/api/*", zone_name = "superjeffc.com" }
 ]
-
-
