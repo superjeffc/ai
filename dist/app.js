@@ -279,6 +279,12 @@ analyzeBtn.addEventListener('click', async () => {
       // Small timeout to allow the browser to lay out the DOM elements
       await new Promise(resolve => setTimeout(resolve, 100));
       
+      // Temporarily show the panel to get accurate scrollHeight measurements
+      const panelWasHidden = resumePanel && resumePanel.classList.contains('hidden');
+      if (panelWasHidden) {
+        resumePanel.classList.remove('hidden');
+      }
+      
       const contentHeight = resumePreviewContent.scrollHeight;
       console.log(`First pass resume rendered height: ${contentHeight}px (Target page count: ${targetPageCount})`);
       
@@ -291,6 +297,10 @@ analyzeBtn.addEventListener('click', async () => {
         directive = `The generated resume is too long (${contentHeight}px) and spills onto page ${nextPage}. Please make the text slightly more compact, reduce vertical margins/paddings, and make it fit strictly on exactly ${targetPageCount} page${targetPageCount > 1 ? 's' : ''}.`;
       } else if (contentHeight < minRequiredHeight) {
         directive = `The generated resume is too short (${contentHeight}px) for a ${targetPageCount}-page layout. Please expand the details under work experience, add more description to bullet points, and increase margins/padding slightly to fill exactly ${targetPageCount} page${targetPageCount > 1 ? 's' : ''} nicely.`;
+      }
+      
+      if (panelWasHidden) {
+        resumePanel.classList.add('hidden');
       }
       
       if (directive) {
@@ -360,6 +370,12 @@ function fitToPageTarget(element, targetPages) {
     return;
   }
   
+  // Temporarily show resume panel if hidden to get accurate measurements
+  const panelWasHidden = resumePanel && resumePanel.classList.contains('hidden');
+  if (panelWasHidden) {
+    resumePanel.classList.remove('hidden');
+  }
+  
   // Reset any previous dynamic sizing
   element.style.fontSize = "1.0em";
   
@@ -388,6 +404,10 @@ function fitToPageTarget(element, targetPages) {
       }
       console.log(`Scaled up to ${currentScale}em. New height: ${element.scrollHeight}px`);
     }
+  }
+  
+  if (panelWasHidden) {
+    resumePanel.classList.add('hidden');
   }
 }
 
