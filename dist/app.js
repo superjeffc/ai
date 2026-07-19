@@ -351,7 +351,7 @@ if (tabCritiqueBtn && tabResumeBtn && critiquePanel && resumePanel) {
 // Download PDF resume
 if (downloadPdfBtn) {
   downloadPdfBtn.addEventListener('click', () => {
-    const element = document.getElementById('resume-preview-container');
+    const element = document.getElementById('resume-preview-content');
     if (!element || !resumePreviewContent.innerHTML.trim() || resumePreviewContent.innerHTML.includes('No rewritten resume generated')) {
       alert("No rewritten resume content available to download.");
       return;
