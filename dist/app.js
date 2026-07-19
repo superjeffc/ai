@@ -39,6 +39,8 @@ const resumePreviewContent = document.getElementById('resume-preview-content');
 const downloadPdfBtn = document.getElementById('download-pdf-btn');
 const downloadPdfTopBtn = document.getElementById('download-pdf-top-btn');
 const jobDescInput = document.getElementById('job-desc-input');
+const charCount = document.getElementById('char-count');
+const charLimitWarning = document.getElementById('char-limit-warning');
 
 let selectedFile = null;
 let currentCritiqueMarkdown = "";
@@ -107,6 +109,38 @@ fileInput.addEventListener('change', (e) => {
   }
 });
 
+if (jobDescInput) {
+  jobDescInput.addEventListener('input', updateCharCount);
+}
+
+function updateCharCount() {
+  if (!jobDescInput || !charCount) return;
+  const len = jobDescInput.value.length;
+  charCount.textContent = len.toLocaleString();
+  
+  if (len >= 9500) {
+    charCount.className = "font-bold text-red-400 code-font";
+    if (charLimitWarning) {
+      charLimitWarning.textContent = "Approaching character limit";
+      charLimitWarning.classList.remove('opacity-0');
+      charLimitWarning.classList.add('opacity-100');
+    }
+  } else if (len >= 8000) {
+    charCount.className = "font-bold text-yellow-400 code-font";
+    if (charLimitWarning) {
+      charLimitWarning.textContent = "Approaching character limit";
+      charLimitWarning.classList.remove('opacity-0');
+      charLimitWarning.classList.add('opacity-100');
+    }
+  } else {
+    charCount.className = "font-bold text-gray-400 code-font";
+    if (charLimitWarning) {
+      charLimitWarning.classList.remove('opacity-100');
+      charLimitWarning.classList.add('opacity-0');
+    }
+  }
+}
+
 // Remove file click handler
 removeFileBtn.addEventListener('click', (e) => {
   e.stopPropagation();
@@ -141,7 +175,10 @@ function clearSelectedFile() {
   analyzeBtn.classList.add('hidden');
   if (turnstileContainer) turnstileContainer.classList.add('hidden');
   if (window.turnstile) window.turnstile.reset();
-  if (jobDescInput) jobDescInput.value = '';
+  if (jobDescInput) {
+    jobDescInput.value = '';
+    updateCharCount();
+  }
 
   // Reset tab states
   if (tabCritiqueBtn && tabResumeBtn && critiquePanel && resumePanel) {
@@ -168,8 +205,8 @@ analyzeBtn.addEventListener('click', async () => {
   if (!selectedFile) return;
 
   const jobDesc = jobDescInput ? jobDescInput.value.trim() : "";
-  if (jobDesc.length > 5000) {
-    alert("Job description is too long. The maximum limit is 5000 characters.");
+  if (jobDesc.length > 10000) {
+    alert("Job description is too long. The maximum limit is 10,000 characters.");
     return;
   }
 

@@ -171,7 +171,11 @@
         <!-- Job Description Input (Optional) -->
         <div class="w-full mt-6 text-left">
           <label for="job-desc-input" class="block text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Target Job Description (Optional)</label>
-          <textarea id="job-desc-input" maxlength="5000" rows="4" placeholder="Paste the target job description here to optimize your resume and get tailored critique suggestions..." class="w-full bg-slate-900/40 border border-slate-800 focus:border-indigo-500/50 rounded-xl p-3 text-sm text-gray-300 placeholder-gray-600 focus:outline-none transition resize-none"></textarea>
+          <textarea id="job-desc-input" maxlength="10000" rows="4" placeholder="Paste the target job description here to optimize your resume and get tailored critique suggestions..." class="w-full bg-slate-900/40 border border-slate-800 focus:border-indigo-500/50 rounded-xl p-3 text-sm text-gray-300 placeholder-gray-600 focus:outline-none transition resize-none"></textarea>
+          <div class="mt-1.5 flex justify-between items-center text-[11px] text-gray-500 px-1 select-none">
+            <span id="char-limit-warning" class="text-red-400 opacity-0 transition-opacity duration-200">Approaching character limit</span>
+            <span class="ml-auto font-medium"><span id="char-count" class="font-bold text-gray-400 code-font">0</span> / 10,000</span>
+          </div>
         </div>
 
         <!-- Selected File State -->
