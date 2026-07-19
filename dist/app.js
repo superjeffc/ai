@@ -55,7 +55,7 @@ const loadingMessages = [
   "Evaluating professional experience spacing...",
   "Synthesizing formatting suggestions...",
   "Checking bullet point action verb alignment...",
-  "Aggregating systems engineering feedback...",
+  "Aggregating feedback...",
   "Optimizing page content density...",
   "Parsing technical keyword groups...",
   "Organizing credentials and headers...",
