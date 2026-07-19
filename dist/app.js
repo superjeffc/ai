@@ -110,7 +110,18 @@ fileInput.addEventListener('change', (e) => {
 });
 
 if (jobDescInput) {
-  jobDescInput.addEventListener('input', updateCharCount);
+  ['input', 'keyup', 'paste', 'change'].forEach(evt => {
+    jobDescInput.addEventListener(evt, () => {
+      // Small delay on paste to allow value to update
+      if (evt === 'paste') {
+        setTimeout(updateCharCount, 0);
+      } else {
+        updateCharCount();
+      }
+    });
+  });
+  // Initialize on load to handle autocomplete or history restores
+  updateCharCount();
 }
 
 function updateCharCount() {
