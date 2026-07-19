@@ -38,6 +38,7 @@ const resumePanel = document.getElementById('resume-panel');
 const resumePreviewContent = document.getElementById('resume-preview-content');
 const downloadPdfBtn = document.getElementById('download-pdf-btn');
 const downloadPdfTopBtn = document.getElementById('download-pdf-top-btn');
+const jobDescInput = document.getElementById('job-desc-input');
 
 let selectedFile = null;
 let currentCritiqueMarkdown = "";
@@ -132,6 +133,7 @@ function clearSelectedFile() {
   analyzeBtn.classList.add('hidden');
   if (turnstileContainer) turnstileContainer.classList.add('hidden');
   if (window.turnstile) window.turnstile.reset();
+  if (jobDescInput) jobDescInput.value = '';
 
   // Reset tab states
   if (tabCritiqueBtn && tabResumeBtn && critiquePanel && resumePanel) {
@@ -204,6 +206,11 @@ analyzeBtn.addEventListener('click', async () => {
 
   const formData = new FormData();
   formData.append('resume', selectedFile);
+  
+  const jobDesc = jobDescInput ? jobDescInput.value.trim() : "";
+  if (jobDesc) {
+    formData.append('jobDescription', jobDesc);
+  }
 
   try {
     const response = await fetch(API_URL, {

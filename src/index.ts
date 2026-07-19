@@ -153,8 +153,9 @@ export default {
     }
 
     try {
-      // 3. Extract the file from FormData
+      // 3. Extract the file and optional parameters from FormData
       const formData = await request.formData();
+      const jobDescription = (formData.get("jobDescription") as string || "").trim();
       let fileEntry: File | null = null;
 
       // Find the first File object in the form data
@@ -279,8 +280,8 @@ export default {
       const pageLabel = targetPageCount === 1 ? "SINGLE PAGE" : `${targetPageCount} PAGES`;
 
       // 6. Build the CS-specialized prompt with Prompt Injection defense
-      const systemPrompt = getCritiqueSystemPrompt(pageLabel);
-      const userPrompt = getCritiqueUserPrompt(resumeMarkdown);
+      const systemPrompt = getCritiqueSystemPrompt(pageLabel, !!jobDescription);
+      const userPrompt = getCritiqueUserPrompt(resumeMarkdown, jobDescription);
 
       // 7. Request evaluation from the AGY bridge server
       let critique = "";
