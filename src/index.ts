@@ -63,7 +63,7 @@ export default {
     // Extract client IP for rate limiting
     const clientIP = request.headers.get("CF-Connecting-IP") || "anonymous";
 
-    // 2. Enforce rate limiting: 1 request per minute per IP
+    // 2. Enforce rate limiting: 1 request per minute per IP (Immediate lock)
     try {
       const isLimited = await env.RESUME_CRITIQUE_KV.get(`rate_limit:${clientIP}`);
       if (isLimited) {
@@ -75,8 +75,13 @@ export default {
           }
         );
       }
+      
+      // Acquire lock immediately before starting any processing
+      if (clientIP !== "anonymous") {
+        await env.RESUME_CRITIQUE_KV.put(`rate_limit:${clientIP}`, "1", { expirationTtl: 60 });
+      }
     } catch (kvErr) {
-      console.error("KV rate limit lookup error:", kvErr);
+      console.error("KV rate limit lock error:", kvErr);
     }
 
     try {
@@ -93,6 +98,10 @@ export default {
       }
 
       if (!fileEntry) {
+        // Clear lock on validation failure
+        if (clientIP !== "anonymous") {
+          await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
+        }
         return new Response(
           JSON.stringify({ error: "No PDF file found in the multipart/form-data payload." }),
           {
@@ -105,6 +114,10 @@ export default {
       // Check if file is PDF (by mime type or extension)
       const isPdf = fileEntry.type === "application/pdf" || fileEntry.name.endsWith(".pdf");
       if (!isPdf) {
+        // Clear lock on validation failure
+        if (clientIP !== "anonymous") {
+          await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
+        }
         return new Response(
           JSON.stringify({ error: "Only PDF files are supported." }),
           {
@@ -130,6 +143,10 @@ export default {
         resumeMarkdown = conversionResult?.[0]?.data || "";
       } catch (convErr: any) {
         console.error("Native document conversion error:", convErr);
+        // Clear lock on system failure
+        if (clientIP !== "anonymous") {
+          await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
+        }
         return new Response(
           JSON.stringify({ error: `Failed to extract text from PDF natively: ${convErr.message || convErr}` }),
           {
@@ -140,6 +157,10 @@ export default {
       }
 
       if (!resumeMarkdown || resumeMarkdown.trim().length === 0) {
+        // Clear lock on failure
+        if (clientIP !== "anonymous") {
+          await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
+        }
         return new Response(
           JSON.stringify({ error: "Failed to extract legible text using native parser." }),
           {
@@ -195,6 +216,10 @@ Return your critique in clean, beautifully structured Markdown (with proper head
         critique = await bridgeResponse.text();
       } catch (aiErr: any) {
         console.error("AGY Bridge error:", aiErr);
+        // Clear lock on failure
+        if (clientIP !== "anonymous") {
+          await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
+        }
         return new Response(
           JSON.stringify({ error: `AGY Bridge execution failed: ${aiErr.message || aiErr}` }),
           {
@@ -205,6 +230,10 @@ Return your critique in clean, beautifully structured Markdown (with proper head
       }
 
       if (!critique) {
+        // Clear lock on failure
+        if (clientIP !== "anonymous") {
+          await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
+        }
         return new Response(
           JSON.stringify({ error: "Empty response returned from AGY Bridge." }),
           {
@@ -220,12 +249,7 @@ Return your critique in clean, beautifully structured Markdown (with proper head
       currentCount++;
       await env.RESUME_CRITIQUE_KV.put("upload_count", currentCount.toString());
 
-      // 9. Apply rate limit key to block future requests from this IP for 60 seconds
-      if (clientIP !== "anonymous") {
-        await env.RESUME_CRITIQUE_KV.put(`rate_limit:${clientIP}`, "1", { expirationTtl: 60 });
-      }
-
-      // 10. Return the completed critique
+      // 9. Return the completed critique
       return new Response(
         JSON.stringify({
           critique,
@@ -243,6 +267,10 @@ Return your critique in clean, beautifully structured Markdown (with proper head
 
     } catch (error: any) {
       console.error("Unhandled error:", error);
+      // Clear lock on unhandled failure
+      if (clientIP !== "anonymous") {
+        await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
+      }
       return new Response(
         JSON.stringify({ error: error.message || error }),
         {
