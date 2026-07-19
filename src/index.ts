@@ -199,10 +199,14 @@ At the very end of your response, output the exact delimiter on a new line:
 === REWRITTEN RESUME ===
 Followed by the fully rewritten and optimized resume based on your critique, formatted as a single, self-contained HTML block.
 Guidelines for the rewritten resume HTML:
-1. Wrap everything inside a single container div (like <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.5; padding: 20px; box-sizing: border-box;">).
-2. Make it look professional: use clean headings, proper margins, a simple top header (candidate's name, email, links), a logical technical skills matrix layout, and well-spaced work experience sections with bullet points.
-3. Keep the styling clean, modern, and professional (light background, black text, clean margins, good line height). Use standard inline CSS styles (e.g. style="font-size: 1.2rem; border-bottom: 2px solid #333; padding-bottom: 4px; margin-top: 15px;") for consistent rendering. Do not output any markdown formatting or markdown code blocks inside this HTML section.
-4. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.`;
+1. Wrap everything inside a single container div (like <div style="font-family: Arial, sans-serif; color: #111; line-height: 1.35; padding: 15px 25px; box-sizing: border-box;">).
+2. STRICT REQUIREMENT: THE ENTIRE REWRITTEN RESUME MUST FIT ON EXACTLY A SINGLE PAGE. To guarantee this:
+   - Use small, compact font sizes: Name/Header = 18px-20px; Section Titles = 11px-12px; Body text and bullets = 9.5px-10.5px.
+   - Keep spacing extremely tight: margins between sections should be at most 8px, and margins between bullet points should be at most 2px.
+   - Use concise and high-impact phrasing to avoid text wrapping onto unnecessary extra lines.
+3. Make it look professional: use clean headings (e.g. style="font-size: 11px; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #444; padding-bottom: 2px; margin-top: 8px; margin-bottom: 4px;"), a compact top header (candidate's name, contact details in a single line or double line with separators), a neat technical skills matrix layout (grouped list or comma-separated blocks), and well-spaced work experience sections with bullet points.
+4. Keep the styling clean, modern, and professional (light background, black text, clean margins, compact line height). Use standard inline CSS styles for consistent rendering. Do not output any markdown formatting or markdown code blocks inside this HTML section.
+5. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.`;
 
       // 7. Request evaluation from the AGY bridge server
       let critique = "";
