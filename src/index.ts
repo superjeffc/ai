@@ -1,6 +1,4 @@
 import {
-  getRefinementSystemPromptWithDirective,
-  getRefinementUserPrompt,
   getCritiqueSystemPrompt,
   getCritiqueUserPrompt
 } from "./prompts";
@@ -69,67 +67,6 @@ export default {
 
     // Extract client IP for rate limiting
     const clientIP = request.headers.get("CF-Connecting-IP") || "anonymous";
-
-    const contentType = request.headers.get("Content-Type") || "";
-    if (contentType.includes("application/json")) {
-      let body: any;
-      try {
-        body = await request.json();
-      } catch (err) {
-        return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-
-      if (body.isRefinement) {
-        const { originalCritique, originalResumeHtml, refinementDirective, targetPageCount } = body;
-        const pageTarget = targetPageCount || 1;
-        const pageLabel = pageTarget === 1 ? "SINGLE PAGE" : `${pageTarget} PAGES`;
-        
-        // Build refinement system prompt
-        const systemPrompt = getRefinementSystemPromptWithDirective(pageLabel, refinementDirective);
-        const userPrompt = getRefinementUserPrompt(originalCritique, refinementDirective, originalResumeHtml);
-
-        // Request execution from AGY bridge
-        try {
-          const bridgeResponse = await fetch("https://agy.superjeffc.com/execute", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${env.API_SECRET || ""}`,
-              "CF-Access-Client-Id": env.CF_CLIENT_ID || "",
-              "CF-Access-Client-Secret": env.CF_CLIENT_SECRET || ""
-            },
-            body: JSON.stringify({ systemPrompt, userPrompt })
-          });
-
-          if (!bridgeResponse.ok) {
-            const errText = await bridgeResponse.text();
-            throw new Error(`Bridge returned status ${bridgeResponse.status}: ${errText}`);
-          }
-
-          const critiqueResult = await bridgeResponse.text();
-          
-          return new Response(
-            JSON.stringify({ critique: critiqueResult }),
-            {
-              status: 200,
-              headers: { ...corsHeaders, "Content-Type": "application/json" }
-            }
-          );
-        } catch (aiErr: any) {
-          console.error("AGY Bridge refinement error:", aiErr);
-          return new Response(
-            JSON.stringify({ error: `Refinement failed: ${aiErr.message || aiErr}` }),
-            {
-              status: 502,
-              headers: { ...corsHeaders, "Content-Type": "application/json" }
-            }
-          );
-        }
-      }
-    }
 
     // 2. Enforce rate limiting: 1 request per minute per IP (Immediate lock)
     try {

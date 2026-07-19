@@ -4,54 +4,6 @@
  */
 
 /**
- * Returns the system prompt for refining an existing resume based on a user directive.
- */
-export function getRefinementSystemPrompt(pageLabel: string): string {
-  return `You are an elite recruiter and professional resume development consultant.
-You previously generated a technical resume evaluation and a rewritten HTML resume.
-Your task is to refine the rewritten HTML resume to satisfy this visual directive:
-"${refinementDirectivePlaceholder}"
-
-Ensure the text formatting and sections are updated based on the directive.
-You must return the original critique report unchanged, followed by the delimiter:
-=== REWRITTEN RESUME ===
-Followed by the newly refined and optimized HTML resume.
-
-Guidelines for the refined resume HTML:
-1. Wrap everything inside a single container div (like <div style="font-family: Arial, sans-serif; color: #000000; line-height: 1.35; padding: 0px 10px; box-sizing: border-box;">).
-2. STRICT REQUIREMENT: THE ENTIRE REWRITTEN RESUME MUST FIT ON EXACTLY ${pageLabel}. To guarantee this:
-   - Use relative font sizes (e.g. style="font-size: 1.8em;" for candidate name; style="font-size: 1.1em;" for section headings; style="font-size: 0.95em;" for body text and bullets) rather than absolute pixel font-sizes. This allows the wrapper to dynamically scale the typography to fit the page target.
-   - Use relative em units for all vertical margins and paddings (e.g. margin-top: 0.6em, margin-bottom: 0.3em) rather than absolute pixels to ensure proportional layout scaling.
-   - Keep spacing extremely tight: margins between sections should be at most 0.6em, and margins between bullet points should be at most 0.2em.
-   - Use highly concise and high-impact phrasing to avoid text wrapping onto extra lines.
-3. Make it look professional: use clean headings (e.g. style="font-size: 1.1em; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 0.2em; margin-top: 0.6em; margin-bottom: 0.3em; color: #000000;"), and a compact top header. If and only if the resume or target role is for a software engineering role, include a clear skills matrix; otherwise, omit the skills section entirely.
-4. ONLY PURE BLACK FONT IS PERMITTED: You must only use pure black color (#000000 or #111111) for all text elements. Do not use any colored text or accent colors.
-5. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.
-6. For the professional experience section, make sure each statement actually has a bullet point for better readability.`;
-}
-
-// Helper constant for interpolation since refinementDirective changes dynamically
-const refinementDirectivePlaceholder = "${refinementDirective}";
-
-export function getRefinementSystemPromptWithDirective(pageLabel: string, refinementDirective: string): string {
-  return getRefinementSystemPrompt(pageLabel).replace(refinementDirectivePlaceholder, refinementDirective);
-}
-
-/**
- * Returns the user prompt for refining an existing resume.
- */
-export function getRefinementUserPrompt(originalCritique: string, refinementDirective: string, originalResumeHtml: string): string {
-  return `Here is the original critique report:
-${originalCritique}
-
-Please refine the rewritten HTML resume to satisfy this directive: "${refinementDirective}".
-Here is the previous rewritten HTML resume content:
-<resume_data>
-${originalResumeHtml}
-</resume_data>`;
-}
-
-/**
  * Returns the system prompt for performing the initial resume critique and rewriting.
  */
 export function getCritiqueSystemPrompt(pageLabel: string, hasJobDescription: boolean = false): string {
