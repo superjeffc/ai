@@ -218,6 +218,34 @@ ${originalResumeHtml}
       const pdfBuffer = await fileEntry.arrayBuffer();
       const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' });
 
+      // Extract page count directly from PDF binary metadata structure
+      let targetPageCount = 1;
+      try {
+        const decoder = new TextDecoder('ascii');
+        const view = new Uint8Array(pdfBuffer);
+        const text = decoder.decode(view);
+        
+        const countMatches = [...text.matchAll(/\/Count\s+(\d+)/g)];
+        if (countMatches.length > 0) {
+          let maxPages = 1;
+          for (const match of countMatches) {
+            const count = parseInt(match[1], 10);
+            if (count > maxPages && count < 20) {
+              maxPages = count;
+            }
+          }
+          targetPageCount = maxPages;
+        } else {
+          const pageMatches = text.match(/\/Type\s*\/Page\b/g);
+          if (pageMatches && pageMatches.length > 0 && pageMatches.length < 20) {
+            targetPageCount = pageMatches.length;
+          }
+        }
+        console.log(`Parsed actual PDF page count from binary metadata: ${targetPageCount}`);
+      } catch (pdfErr) {
+        console.warn("Failed to parse PDF binary page count:", pdfErr);
+      }
+
       // 5. Call env.AI.toMarkdown with the exact array-of-objects signature
       let resumeMarkdown = "";
       try {
@@ -257,14 +285,15 @@ ${originalResumeHtml}
         );
       }
 
-      // Calculate target page count based on character count of raw resume text
-      const charCount = resumeMarkdown.length;
-      let targetPageCount = 1;
-      if (charCount > 4200) {
-        targetPageCount = 2;
-      }
-      if (charCount > 8500) {
-        targetPageCount = 3;
+      // Fallback: If binary parsing resulted in 1 but the text volume is extremely large, adjust target
+      if (targetPageCount === 1) {
+        const charCount = resumeMarkdown.length;
+        if (charCount > 4200) {
+          targetPageCount = 2;
+        }
+        if (charCount > 8500) {
+          targetPageCount = 3;
+        }
       }
       const pageLabel = targetPageCount === 1 ? "SINGLE PAGE" : `${targetPageCount} PAGES`;
 
