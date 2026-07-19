@@ -8,3 +8,8 @@ binding = "AI"
 routes = [
   { pattern = "critique.superjeffc.com/api/*", zone_name = "superjeffc.com" }
 ]
+
+[[kv_namespaces]]
+binding = "RESUME_CRITIQUE_KV"
+id = "3b7ad08d2b9642f0885aa0c91d089a17"
+

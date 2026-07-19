@@ -23,6 +23,10 @@ const copyBtn = document.getElementById('copy-btn');
 const downloadBtn = document.getElementById('download-btn');
 const newCritiqueBtn = document.getElementById('new-critique-btn');
 
+// Stats counter DOM elements
+const statsCounter = document.getElementById('stats-counter');
+const counterValue = document.getElementById('counter-value');
+
 let selectedFile = null;
 let currentCritiqueMarkdown = "";
 let loadingInterval = null;
@@ -166,6 +170,11 @@ analyzeBtn.addEventListener('click', async () => {
 
     currentCritiqueMarkdown = data.critique;
     
+    // Update counter if returned in response
+    if (data && typeof data.count === 'number') {
+      updateCounter(data.count);
+    }
+    
     // Render Critique Markdown
     critiqueContent.innerHTML = marked.parse(currentCritiqueMarkdown);
     extractedMeta.textContent = `Processed ${formatBytes(data.extractedTextLength || 0)} of raw resume text`;
@@ -232,3 +241,28 @@ newCritiqueBtn.addEventListener('click', () => {
   clearSelectedFile();
   uploadCard.classList.remove('hidden');
 });
+
+// Fetch and display stats counter
+async function fetchStats() {
+  try {
+    const response = await fetch(API_URL);
+    if (response.ok) {
+      const data = await response.json();
+      if (data && typeof data.count === 'number') {
+        updateCounter(data.count);
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to fetch stats count:", err);
+  }
+}
+
+function updateCounter(count) {
+  if (counterValue && statsCounter) {
+    counterValue.textContent = count;
+    statsCounter.classList.remove('opacity-0');
+  }
+}
+
+// Call on startup
+fetchStats();

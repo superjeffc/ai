@@ -3,6 +3,7 @@ export interface Env {
   API_SECRET: string;
   CF_CLIENT_ID?: string;
   CF_CLIENT_SECRET?: string;
+  RESUME_CRITIQUE_KV: KVNamespace;
 }
 
 export default {
@@ -10,7 +11,7 @@ export default {
     // Define CORS headers
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
       "Access-Control-Max-Age": "86400",
     };
@@ -23,9 +24,10 @@ export default {
       });
     }
 
-    // Only allow POST requests at "/", "/api", or "/api/"
+    // Support GET/POST at "/", "/api", "/api/", "/api/stats"
     const url = new URL(request.url);
-    if (url.pathname !== "/" && url.pathname !== "/api" && url.pathname !== "/api/") {
+    const validPaths = ["/", "/api", "/api/", "/api/stats"];
+    if (!validPaths.includes(url.pathname)) {
       return new Response(
         JSON.stringify({ error: "Not Found" }),
         {
@@ -35,9 +37,22 @@ export default {
       );
     }
 
+    // Handle stats query
+    if (request.method === "GET") {
+      let countVal = await env.RESUME_CRITIQUE_KV.get("upload_count");
+      let currentCount = countVal ? parseInt(countVal, 10) : 0;
+      return new Response(
+        JSON.stringify({ count: currentCount }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     if (request.method !== "POST") {
       return new Response(
-        JSON.stringify({ error: `Method Not Allowed. Expected POST, received ${request.method}.` }),
+        JSON.stringify({ error: `Method Not Allowed. Expected GET or POST, received ${request.method}.` }),
         {
           status: 405,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -180,11 +195,18 @@ Return your critique in clean, beautifully structured Markdown (with proper head
         );
       }
 
-      // 7. Return the completed critique
+      // 7. Increment the upload counter in KV
+      let countVal = await env.RESUME_CRITIQUE_KV.get("upload_count");
+      let currentCount = countVal ? parseInt(countVal, 10) : 0;
+      currentCount++;
+      await env.RESUME_CRITIQUE_KV.put("upload_count", currentCount.toString());
+
+      // 8. Return the completed critique
       return new Response(
         JSON.stringify({
           critique,
-          extractedTextLength: resumeMarkdown.length
+          extractedTextLength: resumeMarkdown.length,
+          count: currentCount
         }),
         {
           status: 200,
