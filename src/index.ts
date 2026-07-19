@@ -95,11 +95,13 @@ Guidelines for the refined resume HTML:
 1. Wrap everything inside a single container div (like <div style="font-family: Arial, sans-serif; color: #000000; line-height: 1.35; padding: 0px 10px; box-sizing: border-box;">).
 2. STRICT REQUIREMENT: THE ENTIRE REWRITTEN RESUME MUST FIT ON EXACTLY ${pageLabel}. To guarantee this:
    - Use relative font sizes (e.g. style="font-size: 1.8em;" for candidate name; style="font-size: 1.1em;" for section headings; style="font-size: 0.95em;" for body text and bullets) rather than absolute pixel font-sizes. This allows the wrapper to dynamically scale the typography to fit the page target.
-   - Keep spacing extremely tight: margins between sections should be at most 6px, and margins between bullet points should be at most 2px.
+   - Use relative em units for all vertical margins and paddings (e.g. margin-top: 0.6em, margin-bottom: 0.3em) rather than absolute pixels to ensure proportional layout scaling.
+   - Keep spacing extremely tight: margins between sections should be at most 0.6em, and margins between bullet points should be at most 0.2em.
    - Use highly concise and high-impact phrasing to avoid text wrapping onto extra lines.
-3. Make it look professional: use clean headings (e.g. style="font-size: 1.1em; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 2px; margin-top: 6px; margin-bottom: 3px; color: #000000;"), a compact top header, and technical skills matrix.
+3. Make it look professional: use clean headings (e.g. style="font-size: 1.1em; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 0.2em; margin-top: 0.6em; margin-bottom: 0.3em; color: #000000;"), a compact top header, and technical skills matrix.
 4. ONLY PURE BLACK FONT IS PERMITTED: You must only use pure black color (#000000 or #111111) for all text elements. Do not use any colored text or accent colors.
-5. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.`;
+5. Layout break controls: To prevent elements (like bullet items, headings, or table rows) from being split or sliced vertically in half across PDF page boundaries, apply the CSS property style="page-break-inside: avoid; break-inside: avoid;" to all section wrapper divs, work experience item wrappers, and list items (li).
+6. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.`;
 
         const userPrompt = `Here is the original critique report:
 ${originalCritique}
@@ -329,12 +331,14 @@ Guidelines for the rewritten resume HTML:
 1. Wrap everything inside a single container div (like <div style="font-family: Arial, sans-serif; color: #000000; line-height: 1.35; padding: 0px 10px; box-sizing: border-box;">).
 2. STRICT REQUIREMENT: THE ENTIRE REWRITTEN RESUME MUST FIT ON EXACTLY ${pageLabel}. To guarantee this:
    - Use relative font sizes (e.g. style="font-size: 1.8em;" for candidate name; style="font-size: 1.1em;" for section headings; style="font-size: 0.95em;" for body text and bullets) rather than absolute pixel font-sizes. This allows the wrapper to dynamically scale the typography to fit the page target.
-   - Keep spacing extremely tight: margins between sections should be at most 8px, and margins between bullet points should be at most 2px.
+   - Use relative em units for all vertical margins and paddings (e.g. margin-top: 0.6em, margin-bottom: 0.3em) rather than absolute pixels to ensure proportional layout scaling.
+   - Keep spacing extremely tight: margins between sections should be at most 0.8em, and margins between bullet points should be at most 0.2em.
    - Use concise and high-impact phrasing to avoid text wrapping onto unnecessary extra lines.
-3. Make it look professional: use clean headings (e.g. style="font-size: 1.1em; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 2px; margin-top: 8px; margin-bottom: 4px; color: #000000;"), a compact top header (candidate's name, contact details in a single line or double line with separators), a neat technical skills matrix layout (grouped list or comma-separated blocks), and well-spaced work experience sections with bullet points.
+3. Make it look professional: use clean headings (e.g. style="font-size: 1.1em; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 0.2em; margin-top: 0.7em; margin-bottom: 0.3em; color: #000000;"), a compact top header (candidate's name, contact details in a single line or double line with separators), a neat technical skills matrix layout (grouped list or comma-separated blocks), and well-spaced work experience sections with bullet points.
 4. ONLY PURE BLACK FONT IS PERMITTED: You must only use pure black color (#000000 or #111111) for all text elements. Do not use any colored text (such as blue for links, or grey/blue for headers/subsections). Accent lines (like section borders) must also be black or dark grey.
-5. Keep the styling clean, modern, and professional (white background, black text, clean margins, compact line height). Use standard inline CSS styles for consistent rendering. Do not output any markdown formatting or markdown code blocks inside this HTML section.
-6. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.`;
+5. Layout break controls: To prevent elements (like bullet items, headings, or table rows) from being split or sliced vertically in half across PDF page boundaries, apply the CSS property style="page-break-inside: avoid; break-inside: avoid;" to all section wrapper divs, work experience item wrappers, and list items (li).
+6. Keep the styling clean, modern, and professional (white background, black text, clean margins, compact line height). Use standard inline CSS styles for consistent rendering. Do not output any markdown formatting or markdown code blocks inside this HTML section.
+7. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.`;
 
       // 7. Request evaluation from the AGY bridge server
       let critique = "";

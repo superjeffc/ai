@@ -399,7 +399,7 @@ function fitToPageTarget(element, targetPages) {
   
   // Scale down step-by-step if too tall
   if (height > maxAllowedHeight) {
-    while (element.scrollHeight > maxAllowedHeight && currentScale > 0.72) {
+    while (element.scrollHeight > maxAllowedHeight && currentScale > 0.65) {
       currentScale -= 0.015;
       element.style.fontSize = `${currentScale}em`;
     }
@@ -521,7 +521,8 @@ function handleDownloadPdf() {
       scrollX: 0,
       scrollY: 0
     },
-    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
+    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
   };
   
   const buttonsToDisable = [];
