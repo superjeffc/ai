@@ -60,8 +60,27 @@ export default {
       );
     }
 
+    // Extract client IP for rate limiting
+    const clientIP = request.headers.get("CF-Connecting-IP") || "anonymous";
+
+    // 2. Enforce rate limiting: 1 request per minute per IP
     try {
-      // 2. Extract the file from FormData
+      const isLimited = await env.RESUME_CRITIQUE_KV.get(`rate_limit:${clientIP}`);
+      if (isLimited) {
+        return new Response(
+          JSON.stringify({ error: "Too Many Requests. You can only evaluate one resume per minute." }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    } catch (kvErr) {
+      console.error("KV rate limit lookup error:", kvErr);
+    }
+
+    try {
+      // 3. Extract the file from FormData
       const formData = await request.formData();
       let fileEntry: File | null = null;
 
@@ -95,11 +114,11 @@ export default {
         );
       }
 
-      // 3. Convert to an ArrayBuffer and then create a clean Blob with explicit type
+      // 4. Convert to an ArrayBuffer and then create a clean Blob with explicit type
       const pdfBuffer = await fileEntry.arrayBuffer();
       const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' });
 
-      // 4. Call env.AI.toMarkdown with the exact array-of-objects signature
+      // 5. Call env.AI.toMarkdown with the exact array-of-objects signature
       let resumeMarkdown = "";
       try {
         const conversionResult = await env.AI.toMarkdown([
@@ -130,7 +149,7 @@ export default {
         );
       }
 
-      // 5. Build the CS-specialized prompt
+      // 6. Build the CS-specialized prompt
       const systemPrompt = `You are an elite technical recruiter and Principal Systems Engineer specializing in evaluating candidates for highly competitive, deep-tech engineering roles (e.g., Systems Engineering, Distributed Systems, Kernel Development, Compilers, High-Performance Computing, and Infrastructure Engineering).
 
 Analyze the candidate's resume text and provide a rigorous, objective, and highly constructive critique tailored to Computer Science standards. Evaluate the resume strictly on:
@@ -151,7 +170,7 @@ Analyze the candidate's resume text and provide a rigorous, objective, and highl
 
 Return your critique in clean, beautifully structured Markdown (with proper headings, lists, and bold text). Be direct, professional, and actionable. Do not output conversational preamble or postamble; start directly with the Markdown report.`;
 
-      // 6. Request evaluation from the AGY bridge server
+      // 7. Request evaluation from the AGY bridge server
       let critique = "";
       try {
         const bridgeResponse = await fetch("https://agy.superjeffc.com/execute", {
@@ -195,13 +214,18 @@ Return your critique in clean, beautifully structured Markdown (with proper head
         );
       }
 
-      // 7. Increment the upload counter in KV
+      // 8. Increment the upload counter in KV
       let countVal = await env.RESUME_CRITIQUE_KV.get("upload_count");
       let currentCount = countVal ? parseInt(countVal, 10) : 0;
       currentCount++;
       await env.RESUME_CRITIQUE_KV.put("upload_count", currentCount.toString());
 
-      // 8. Return the completed critique
+      // 9. Apply rate limit key to block future requests from this IP for 60 seconds
+      if (clientIP !== "anonymous") {
+        await env.RESUME_CRITIQUE_KV.put(`rate_limit:${clientIP}`, "1", { expirationTtl: 60 });
+      }
+
+      // 10. Return the completed critique
       return new Response(
         JSON.stringify({
           critique,
