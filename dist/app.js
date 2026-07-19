@@ -167,6 +167,12 @@ function formatBytes(bytes) {
 analyzeBtn.addEventListener('click', async () => {
   if (!selectedFile) return;
 
+  const jobDesc = jobDescInput ? jobDescInput.value.trim() : "";
+  if (jobDesc.length > 5000) {
+    alert("Job description is too long. The maximum limit is 5000 characters.");
+    return;
+  }
+
   // 1. Retrieve Turnstile token
   const token = window.turnstile ? window.turnstile.getResponse() : "";
   if (!token) {

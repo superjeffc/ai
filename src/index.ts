@@ -93,6 +93,21 @@ export default {
       // 3. Extract the file and optional parameters from FormData
       const formData = await request.formData();
       const jobDescription = (formData.get("jobDescription") as string || "").trim();
+      
+      if (jobDescription.length > 5000) {
+        // Clear lock on validation failure
+        if (clientIP !== "anonymous") {
+          await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
+        }
+        return new Response(
+          JSON.stringify({ error: "Job description exceeds the maximum limit of 5000 characters." }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      
       let fileEntry: File | null = null;
 
       // Find the first File object in the form data
