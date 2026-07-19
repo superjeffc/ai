@@ -509,6 +509,7 @@ function handleDownloadPdf() {
   const originalPadding = previewContainer ? previewContainer.style.padding : '';
   const originalMinHeight = previewContainer ? previewContainer.style.minHeight : '';
   const originalScrollTop = scrollParent ? scrollParent.scrollTop : 0;
+  const originalFontSize = element.style.fontSize || '1.0em';
   
   // Temporarily clear styling constraints and scroll to top to prevent html2canvas offsets
   if (previewContainer) {
@@ -519,7 +520,7 @@ function handleDownloadPdf() {
     scrollParent.scrollTop = 0;
   }
   
-  const originalName = selectedFile ? selectedFile.name.replace('.pdf', '') : 'resume';
+  const originalName = selectedFile ? selectedFile.name.replace('.pdf', '') : 'résumé';
   const opt = {
     margin:       [0.12, 0.15, 0.12, 0.15],
     filename:     `${originalName}_optimized.pdf`,
@@ -539,42 +540,68 @@ function handleDownloadPdf() {
   if (downloadPdfTopBtn) buttonsToDisable.push(downloadPdfTopBtn);
   
   const oldTexts = buttonsToDisable.map(btn => btn.innerHTML);
+  
+  function enableButtons() {
+    buttonsToDisable.forEach((btn, idx) => {
+      btn.disabled = false;
+      btn.innerHTML = oldTexts[idx];
+    });
+  }
+  
+  function restoreStyles() {
+    if (previewContainer) {
+      previewContainer.style.padding = originalPadding;
+      previewContainer.style.minHeight = originalMinHeight;
+    }
+    if (scrollParent) {
+      scrollParent.scrollTop = originalScrollTop;
+    }
+    element.style.fontSize = originalFontSize;
+  }
+
   buttonsToDisable.forEach(btn => {
     btn.disabled = true;
     btn.innerHTML = "<span>Generating PDF...</span>";
   });
   
-  html2pdf().set(opt).from(element).save().then(() => {
-    buttonsToDisable.forEach((btn, idx) => {
-      btn.disabled = false;
-      btn.innerHTML = oldTexts[idx];
-    });
+  // Multi-pass page fitting logic
+  const targetPages = targetPageCount || 1;
+  let currentScale = parseFloat(originalFontSize) || 1.0;
+  
+  function runPdfGenerationPass(attempt = 1) {
+    console.log(`PDF generation pass ${attempt}: scaling at ${currentScale}em`);
+    element.style.fontSize = `${currentScale}em`;
     
-    // Restore styles and scroll position
-    if (previewContainer) {
-      previewContainer.style.padding = originalPadding;
-      previewContainer.style.minHeight = originalMinHeight;
-    }
-    if (scrollParent) {
-      scrollParent.scrollTop = originalScrollTop;
-    }
-  }).catch(err => {
-    console.error("PDF generation failed:", err);
-    alert("Failed to generate PDF. Please try again.");
-    buttonsToDisable.forEach((btn, idx) => {
-      btn.disabled = false;
-      btn.innerHTML = oldTexts[idx];
+    html2pdf().set(opt).from(element).toPdf().get('pdf').then((pdf) => {
+      const actualPages = pdf.internal.getNumberOfPages();
+      console.log(`Pass ${attempt} result: PDF has ${actualPages} pages (Target: ${targetPages})`);
+      
+      if (actualPages > targetPages && currentScale > 0.65 && attempt < 4) {
+        // PDF is too long, shrink slightly and try again
+        currentScale -= 0.02;
+        runPdfGenerationPass(attempt + 1);
+      } else {
+        // PDF fits target pages (or we can't shrink further) - trigger download
+        html2pdf().set(opt).from(element).save().then(() => {
+          restoreStyles();
+          enableButtons();
+        }).catch(err => {
+          console.error("PDF save failed:", err);
+          alert("Failed to generate PDF. Please try again.");
+          restoreStyles();
+          enableButtons();
+        });
+      }
+    }).catch(err => {
+      console.error(`PDF generation pass ${attempt} failed:`, err);
+      alert("Failed to generate PDF. Please try again.");
+      restoreStyles();
+      enableButtons();
     });
-    
-    // Restore styles and scroll position
-    if (previewContainer) {
-      previewContainer.style.padding = originalPadding;
-      previewContainer.style.minHeight = originalMinHeight;
-    }
-    if (scrollParent) {
-      scrollParent.scrollTop = originalScrollTop;
-    }
-  });
+  }
+  
+  // Start the first pass
+  runPdfGenerationPass(1);
 }
 
 if (downloadPdfBtn) {
