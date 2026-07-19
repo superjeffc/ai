@@ -1,14 +1,5 @@
-// Polyfills for PDF.js compatibility in Cloudflare Workers
-const globalAny: any = globalThis;
-if (!globalAny.window) globalAny.window = globalThis;
-if (!globalAny.document) {
-  globalAny.document = {
-    documentElement: { style: {} },
-    createElement: () => ({ style: {} })
-  };
-}
+import { extractTextFromPDFBuffer } from "./pdf-helper";
 
-import { extractText, getDocumentProxy } from "unpdf";
 
 
 export interface Env {
@@ -103,16 +94,12 @@ export default {
         );
       }
 
-      // Extract ArrayBuffer and convert to Uint8Array for unpdf
+      // Extract ArrayBuffer and call the edge-safe helper
       const arrayBuffer = await fileEntry.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
 
-      // Load document proxy and extract text
       let resumeText = "";
       try {
-        const pdf = await getDocumentProxy(uint8Array);
-        const extraction = await extractText(pdf, { mergePages: true });
-        resumeText = extraction.text || "";
+        resumeText = await extractTextFromPDFBuffer(arrayBuffer);
       } catch (pdfErr: any) {
         console.error("PDF Parsing error:", pdfErr);
         return new Response(
