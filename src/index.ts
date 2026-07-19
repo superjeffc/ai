@@ -1,110 +1,210 @@
-import { Env } from "./types";
-import { synthesizeSingleTicker, runComparativeReduce } from "./financials";
-import {
-  handleFrontendRoute,
-  handleSynthesizeRoute,
-  handleJSRoute
-} from "./routes";
-import { syncLatestFilings } from "./sync";
+import { extractText, getDocumentProxy } from "unpdf";
+
+export interface Env {
+  AI: any;
+}
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    // Define CORS headers
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Max-Age": "86400",
+    };
+
+    // CORS preflight handling
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders,
+      });
+    }
+
+    // Only allow POST requests at "/"
     const url = new URL(request.url);
-
-    // Dynamic session handling
-    const cookieHeader = request.headers.get("Cookie") || "";
-    let userId: string | null = null;
-
-    const cookies = cookieHeader.split(";");
-    for (let cookie of cookies) {
-      const [name, value] = cookie.trim().split("=");
-      if (name === "session_id" && value) {
-        userId = value;
-        break;
-      }
-    }
-
-    if (!userId) {
-      userId = crypto.randomUUID();
-    }
-
-    // ROUTE 1: Serves the Web UI Layout
-    if (url.pathname === "/" && request.method === "GET") {
-      return handleFrontendRoute(request, env, userId);
-    }
-
-    // ROUTE 1.5: Serves the JS file for local dev
-    if (url.pathname === "/app.js" && request.method === "GET") {
-      return handleJSRoute(request, env);
-    }
-
-    // ROUTE 2: GET /api/synthesize?tickers=AAPL,MSFT,NVDA
-    if (url.pathname === "/api/synthesize" && request.method === "GET") {
-      return handleSynthesizeRoute(request, env, url);
-    }
-
-    return new Response("Not Found", { status: 404 });
-  },
-
-  async queue(batch: any, env: Env): Promise<void> {
-    for (const message of batch.messages) {
-      const body = message.body;
-      if (body.type === "synthesis") {
-        const { tickers, results } = body;
-        const sortedResults = [...results].sort((a, b) => a.ticker.localeCompare(b.ticker));
-        const tickersKey = "SYNTHESIS:" + sortedResults.map(r => r.ticker).join(",");
-        const accessionsKey = sortedResults.map(r => r.accessionNumber || "").join(",");
-        try {
-          console.log(`Queue Synthesis: Processing synthesis for ${tickers.join(", ")}`);
-          const synthesis = await runComparativeReduce(results, env);
-          
-          const maxFilingDate = sortedResults.reduce((max, r) => {
-            return (r.filingDate && r.filingDate > max) ? r.filingDate : max;
-          }, "1970-01-01");
-
-          await env.DB.prepare(
-            "INSERT OR REPLACE INTO earnings_cache (ticker, accession_number, filing_date, summary) VALUES (?1, ?2, ?3, ?4)"
-          )
-            .bind(tickersKey, accessionsKey, maxFilingDate, synthesis)
-            .run();
-        } catch (err: any) {
-          console.error(`Queue synthesis failed:`, err.message);
-          try {
-            await env.DB.prepare(
-              "DELETE FROM earnings_cache WHERE ticker = ?1 AND summary = 'PENDING'"
-            )
-              .bind(tickersKey)
-              .run();
-          } catch (dbErr) {
-            console.error(`Failed to delete PENDING synthesis lock:`, dbErr);
-          }
+    if (url.pathname !== "/") {
+      return new Response(
+        JSON.stringify({ error: "Not Found" }),
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
-      } else {
-        const { ticker } = body;
-        try {
-          console.log(`Queue Ingestion: Processing ${ticker}`);
-          const res = await synthesizeSingleTicker(ticker, env);
-          if (res.error) {
-            throw new Error(res.error);
+      );
+    }
+
+    if (request.method !== "POST") {
+      return new Response(
+        JSON.stringify({ error: "Method Not Allowed" }),
+        {
+          status: 405,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Process multipart/form-data
+    try {
+      const contentType = request.headers.get("content-type") || "";
+      if (!contentType.includes("multipart/form-data")) {
+        return new Response(
+          JSON.stringify({ error: "Content-Type must be multipart/form-data" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
-        } catch (err: any) {
-          console.error(`Queue consumer failed for ${ticker}:`, err.message);
-          try {
-            await env.DB.prepare(
-              "DELETE FROM earnings_cache WHERE ticker = ?1 AND summary = 'PENDING'"
-            )
-              .bind(ticker)
-              .run();
-          } catch (dbErr) {
-            console.error(`Failed to delete PENDING lock for ${ticker}:`, dbErr);
-          }
+        );
+      }
+
+      const formData = await request.formData();
+      let fileEntry: File | null = null;
+
+      // Find the first File object in the form data
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          fileEntry = value;
+          break;
         }
       }
-      message.ack();
-    }
-  },
 
-  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(syncLatestFilings(env));
+      if (!fileEntry) {
+        return new Response(
+          JSON.stringify({ error: "No PDF file found in the multipart/form-data payload under any field name." }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Check if file is PDF (by mime type or extension)
+      const isPdf = fileEntry.type === "application/pdf" || fileEntry.name.endsWith(".pdf");
+      if (!isPdf) {
+        return new Response(
+          JSON.stringify({ error: "Only PDF files are supported." }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Extract ArrayBuffer and convert to Uint8Array for unpdf
+      const arrayBuffer = await fileEntry.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      // Load document proxy and extract text
+      let resumeText = "";
+      try {
+        const pdf = await getDocumentProxy(uint8Array);
+        const extraction = await extractText(pdf, { mergePages: true });
+        resumeText = extraction.text || "";
+      } catch (pdfErr: any) {
+        console.error("PDF Parsing error:", pdfErr);
+        return new Response(
+          JSON.stringify({ error: `Failed to parse PDF document: ${pdfErr.message || pdfErr}` }),
+          {
+            status: 422,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      if (!resumeText || resumeText.trim().length === 0) {
+        return new Response(
+          JSON.stringify({ error: "Could not extract any text from the PDF. Ensure it contains text selectable elements (not scanned images)." }),
+          {
+            status: 422,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Construct prompts for Llama 3.1
+      const systemPrompt = `You are an elite technical recruiter and Principal Systems Engineer specializing in evaluating candidates for highly competitive, deep-tech engineering roles (e.g., Systems Engineering, Distributed Systems, Kernel Development, Compilers, High-Performance Computing, and Infrastructure Engineering).
+
+Analyze the candidate's resume text and provide a rigorous, objective, and highly constructive critique tailored to Computer Science standards. Evaluate the resume strictly on:
+
+1. **Technical Skill Matrix & Logical Grouping**:
+   - Are languages, tools, databases, and frameworks categorized logically?
+   - Ensure low-level or systems languages/tools (e.g., C, C++, Rust, Assembly, CUDA, kernel spaces) are distinct from high-level web frameworks (e.g., React, Vue, Next.js) and infrastructure/cloud platforms (e.g., AWS, Kubernetes, Docker).
+   - Point out buzzword clutter or inclusion of basic tools (like Git, VS Code, Slack, or macOS) that dilute professional credibility.
+
+2. **Bullet Point Impact & Technical Metrics**:
+   - Are achievements quantified using specific systems-level or business-level metrics (e.g., latency reduced by 40%, throughput scaled to 10k RPS, RAM usage halved, or lines of code refactored)?
+   - Are the action verbs strong and technically descriptive (e.g., "architected", "profiled", "optimized", "refactored") instead of generic (e.g., "helped", "assisted", "worked on")?
+   - Do the bullet points explain *how* things were built, not just *what* was built?
+
+3. **Noise Reduction & Layout Whitespace**:
+   - Suggest removing or heavily condensing non-technical or unrelated experiences (e.g., cashier roles, unrelated student societies, basic tutoring) that waste valuable vertical whitespace.
+   - Advise on focusing formatting and structure to maximize layout efficiency.
+
+Return your critique in clean, beautifully structured Markdown (with proper headings, lists, and bold text). Be direct, professional, and actionable. Do not output conversational preamble or postamble; start directly with the Markdown report.`;
+
+      const userPrompt = `Here is the candidate's resume content extracted from the PDF:
+
+---
+${resumeText}
+---
+
+Provide the computer science resume critique.`;
+
+      // Call Cloudflare Workers AI with Llama 3.1
+      let aiResult;
+      try {
+        aiResult = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fp8", {
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+          ]
+        });
+      } catch (aiErr: any) {
+        console.error("Workers AI error:", aiErr);
+        return new Response(
+          JSON.stringify({ error: `Workers AI execution failed: ${aiErr.message || aiErr}` }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      const critique = aiResult?.response || aiResult?.text || "";
+      if (!critique) {
+        return new Response(
+          JSON.stringify({ error: "Empty response returned from Cloudflare Workers AI model." }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Return critique in JSON response format
+      return new Response(
+        JSON.stringify({
+          critique,
+          extractedTextLength: resumeText.length
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+    } catch (err: any) {
+      console.error("Request handling error:", err);
+      return new Response(
+        JSON.stringify({ error: `Internal Server Error: ${err.message || err}` }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
   }
 };
