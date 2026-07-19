@@ -68,6 +68,16 @@ const loadingMessages = [
   "Assembling final critique report..."
 ];
 
+function getShuffledLoadingMessages() {
+  const firstMessage = loadingMessages[0];
+  const remainingMessages = loadingMessages.slice(1);
+  for (let i = remainingMessages.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [remainingMessages[i], remainingMessages[j]] = [remainingMessages[j], remainingMessages[i]];
+  }
+  return [firstMessage, ...remainingMessages];
+}
+
 // Prevent default drag behaviors for the entire window to stop the browser from opening files
 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
   window.addEventListener(eventName, (e) => {
@@ -257,13 +267,14 @@ analyzeBtn.addEventListener('click', async () => {
   uploadCard.classList.add('hidden');
   loadingCard.classList.remove('hidden');
   
+  const shuffledMessages = getShuffledLoadingMessages();
   let stepIndex = 0;
-  loadingStep.textContent = loadingMessages[0];
+  loadingStep.textContent = shuffledMessages[0];
   
   // Cycle loading messages dynamically
   loadingInterval = setInterval(() => {
-    stepIndex = (stepIndex + 1) % loadingMessages.length;
-    loadingStep.textContent = loadingMessages[stepIndex];
+    stepIndex = (stepIndex + 1) % shuffledMessages.length;
+    loadingStep.textContent = shuffledMessages[stepIndex];
   }, 3500);
 
   const formData = new FormData();
