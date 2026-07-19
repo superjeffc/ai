@@ -364,6 +364,7 @@ analyzeBtn.addEventListener('click', async () => {
   } catch (err) {
     console.error("Critique failed:", err);
     alert(`Resume evaluation failed:\n${err.message || err}`);
+    if (window.turnstile) window.turnstile.reset();
     // Revert back to upload page
     loadingCard.classList.add('hidden');
     uploadCard.classList.remove('hidden');
