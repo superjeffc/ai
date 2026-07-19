@@ -359,7 +359,7 @@ if (downloadPdfBtn) {
     
     const originalName = selectedFile ? selectedFile.name.replace('.pdf', '') : 'resume';
     const opt = {
-      margin:       0.2,
+      margin:       [0.12, 0.15, 0.12, 0.15],
       filename:     `${originalName}_optimized.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
       html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
