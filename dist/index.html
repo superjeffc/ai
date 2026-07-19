@@ -3,155 +3,262 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Kite AI</title>
+  <title>CS Resume Critique — Systems Engineered</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
   <style>
-    body { background-color: #111827; color: #f3f4f6; font-family: 'Outfit', sans-serif; }
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 2px; }
-    .prose h1 { font-size: 1.3rem; font-weight: bold; margin-bottom: 0.5rem; color: #fff; }
-    .prose h2 { font-size: 1.15rem; font-weight: bold; margin-bottom: 0.4rem; color: #fff; }
-    .prose ul { list-style-type: disc; margin-left: 1.1rem; margin-bottom: 0.5rem; color: rgba(255,255,255,0.8); }
-    .prose ol { list-style-type: decimal; margin-left: 1.1rem; margin-bottom: 0.5rem; color: rgba(255,255,255,0.8); }
-    .prose p { margin-bottom: 0.4rem; font-size: 0.95rem; }
-    .prose code { background-color: rgba(0,0,0,0.3); padding: 0.125rem 0.25rem; border-radius: 0.25rem; color: #60a5fa; font-family: monospace; font-size: 0.85rem; }
+    body {
+      background-color: #030712;
+      color: #f3f4f6;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
     
-    .prose table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; margin-bottom: 0.75rem; border: 1px solid #1f2937; }
-    .prose th { border-bottom: 2px solid #374151; background-color: #1f2937; padding: 0.5rem; text-align: left; font-weight: bold; color: #fff; font-size: 0.85rem; }
-    .prose td { border-bottom: 1px solid #1f2937; padding: 0.5rem; font-size: 0.85rem; color: rgba(255,255,255,0.8); }
+    .code-font {
+      font-family: 'JetBrains Mono', monospace;
+    }
 
-    /* Custom layout styling to guarantee input/button responsiveness and prevent clipping */
-    .search-container {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b0f19;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1f2937;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #374151;
+    }
+
+    /* Markdown styling inside prose */
+    .prose h1, .prose h2, .prose h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .prose h1 { font-size: 1.5rem; border-bottom: 1px solid #1f2937; padding-bottom: 0.5rem; }
+    .prose h2 { font-size: 1.25rem; }
+    .prose h3 { font-size: 1.1rem; }
+    
+    .prose p {
+      margin-bottom: 1rem;
+      line-height: 1.625;
+      color: #d1d5db;
+      font-size: 0.95rem;
+    }
+    
+    .prose ul, .prose ol {
+      margin-left: 1.5rem;
+      margin-bottom: 1rem;
+      color: #d1d5db;
+    }
+    .prose ul { list-style-type: disc; }
+    .prose ol { list-style-type: decimal; }
+    .prose li { margin-bottom: 0.375rem; font-size: 0.95rem; }
+    
+    .prose strong {
+      color: #f3f4f6;
+      font-weight: 600;
+    }
+    
+    .prose code {
+      background-color: rgba(17, 24, 39, 0.7);
+      border: 1px solid rgba(75, 85, 99, 0.3);
+      padding: 0.15rem 0.3rem;
+      border-radius: 0.25rem;
+      color: #a5b4fc;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+    }
+    
+    .prose blockquote {
+      border-left: 4px solid #6366f1;
+      padding-left: 1rem;
+      color: #9ca3af;
+      font-style: italic;
+      margin: 1rem 0;
+    }
+
+    .prose table {
       width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.9rem;
     }
-    .search-input-wrapper {
-      position: relative;
-      width: 100%;
-      box-sizing: border-box;
+    .prose th {
+      background-color: rgba(31, 41, 55, 0.6);
+      border: 1px solid #374151;
+      padding: 0.625rem;
+      text-align: left;
+      font-weight: 600;
+      color: #ffffff;
     }
-    .search-input {
-      width: 100%;
-      min-width: 0;
-      box-sizing: border-box;
-      text-transform: uppercase;
-      padding-right: 2.5rem !important; /* Space for the clear X button */
+    .prose td {
+      border: 1px solid #374151;
+      padding: 0.625rem;
+      color: #d1d5db;
     }
-    .clear-input-btn {
-      position: absolute;
-      right: 0.75rem;
-      top: 50%;
-      transform: translateY(-50%);
-      background: transparent;
-      border: none;
-      color: #9ca3af; /* gray-400 */
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      width: 1.25rem;
-      height: 1.25rem;
-      border-radius: 50%;
-      transition: color 0.15s, background-color 0.15s;
+    
+    /* Custom animations and background glows */
+    .glow-bg {
+      background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.12) 0%, rgba(0, 0, 0, 0) 60%);
     }
-    .clear-input-btn:hover {
-      color: #f3f4f6; /* gray-100 */
-      background-color: rgba(255, 255, 255, 0.15);
+    
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 0.8; }
     }
-    .clear-input-btn.hidden {
-      display: none;
-    }
-    .search-button {
-      width: 100%;
-      box-sizing: border-box;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    @media (min-width: 640px) {
-      .search-container {
-        flex-direction: row;
-      }
-      .search-input-wrapper {
-        flex: 1;
-        width: 0;
-      }
-      .search-button {
-        width: auto;
-      }
+    .pulse-glow-effect {
+      animation: pulse-glow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
   </style>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="flex flex-col h-[100dvh] w-full max-w-4xl mx-auto p-3 sm:p-4">
+<body class="min-h-screen flex flex-col relative overflow-x-hidden antialiased">
 
-  <header class="flex justify-between items-center py-2 sm:py-4 border-b border-gray-800 shrink-0">
-    <div class="flex items-center gap-2">
-      <span class="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse"></span>
-      <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white">Kite AI</h1>
-    </div>
-  </header>
+  <!-- Background radial ambient glows -->
+  <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] glow-bg rounded-full pointer-events-none blur-3xl pulse-glow-effect"></div>
+  <div class="absolute bottom-[-15%] right-[-10%] w-[60%] h-[60%] glow-bg rounded-full pointer-events-none blur-3xl pulse-glow-effect" style="background: radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.08) 0%, rgba(0, 0, 0, 0) 60%);"></div>
 
-  <div id="synth-container" class="flex-1 flex flex-col overflow-hidden mt-4">
-    <div class="w-full bg-gray-900 border border-gray-800 p-4 rounded-xl mb-4 shrink-0">
-      <h2 class="text-sm font-semibold text-gray-300 mb-2">Earnings Synthesizer</h2>
-      <div class="search-container">
-        <div class="search-input-wrapper">
-          <input type="text" id="synth-tickers" placeholder="e.g. AAPL, MSFT, NVDA, AMD" value="AAPL, MSFT, NVDA" class="search-input bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-white placeholder-gray-500 outline-none focus:border-gray-700 text-sm">
-          <button type="button" id="clear-tickers-btn" class="clear-input-btn hidden" onclick="clearTickersInput()" aria-label="Clear input">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+  <div class="flex-1 flex flex-col w-full max-w-4xl mx-auto px-4 py-8 z-10">
+    
+    <!-- HEADER -->
+    <header class="flex flex-col items-center text-center mb-10 shrink-0">
+      <div class="flex items-center gap-2 mb-3 bg-slate-900/80 border border-slate-800 px-3.5 py-1.5 rounded-full backdrop-blur-md">
+        <span class="w-2 h-2 bg-indigo-500 rounded-full animate-ping"></span>
+        <span class="text-xs font-semibold tracking-wider uppercase text-indigo-400 code-font">Edge ISOLATE RUNTIME</span>
+      </div>
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-4 bg-clip-text text-transparent bg-gradient-to-r from-violet-400 via-indigo-400 to-cyan-400">
+        CS Resume Critique
+      </h1>
+      <p class="text-sm sm:text-base text-gray-400 max-w-xl">
+        Get a brutal, systems-oriented resume evaluation from a simulated Principal Systems Engineer. Runs entirely in-memory on Cloudflare Workers AI.
+      </p>
+    </header>
+
+    <!-- MAIN INTERACTIVE WORKSPACE -->
+    <main class="flex-1 flex flex-col min-h-0">
+      
+      <!-- STATE 1: UPLOAD AREA -->
+      <div id="upload-card" class="bg-slate-950/60 border border-slate-800/80 shadow-2xl rounded-2xl p-6 sm:p-10 backdrop-blur-xl flex flex-col items-center justify-center text-center transition-all duration-300 hover:border-indigo-500/30">
+        
+        <div id="drop-zone" class="w-full border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-xl p-8 sm:p-12 flex flex-col items-center justify-center cursor-pointer transition-all duration-200 bg-slate-900/10 hover:bg-slate-900/30">
+          <input type="file" id="file-input" accept=".pdf" class="hidden">
+          
+          <!-- Upload Icon -->
+          <div class="w-16 h-16 rounded-full bg-indigo-950/40 border border-indigo-900/50 flex items-center justify-center mb-4 text-indigo-400 group-hover:scale-110 transition-transform">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+            </svg>
+          </div>
+          
+          <h3 class="text-base sm:text-lg font-bold text-white mb-2">Drag and drop your PDF resume here</h3>
+          <p class="text-xs sm:text-sm text-gray-500 mb-4">or click to browse from files</p>
+          <span class="text-xs bg-slate-900 border border-slate-800 text-gray-400 px-3 py-1 rounded-full code-font">PDF Only (Max 5MB)</span>
+        </div>
+
+        <!-- Selected File State -->
+        <div id="file-info" class="w-full mt-6 bg-slate-900/60 border border-slate-800 p-4 rounded-xl flex items-center justify-between hidden">
+          <div class="flex items-center gap-3 text-left overflow-hidden mr-4">
+            <div class="text-indigo-400 shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
+            </div>
+            <div class="overflow-hidden">
+              <p class="text-sm font-semibold text-white truncate" id="file-name">resume.pdf</p>
+              <p class="text-xs text-gray-500 code-font" id="file-size">0.0 KB</p>
+            </div>
+          </div>
+          <button id="remove-file-btn" class="text-gray-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-800 transition" aria-label="Remove file">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <button onclick="runSynthesis()" class="search-button bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition cursor-pointer flex items-center gap-1.5" id="synth-btn">
-          <span>Synthesize</span>
+
+        <!-- Analyze Button -->
+        <button id="analyze-btn" class="w-full mt-6 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-semibold py-3 px-6 rounded-xl transition cursor-pointer shadow-lg shadow-indigo-900/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hidden">
+          <span>Engineered Assessment</span>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+          </svg>
         </button>
+
       </div>
-      <p class="text-xs text-gray-500 mt-2">Analyzes up to 4 comma-separated tickers.</p>
-    </div>
 
-    <!-- Anchored Navigation / Quick Links -->
-    <div id="synth-jump-bar" class="w-full bg-gray-900/40 border border-gray-800 p-2 rounded-xl mb-4 shrink-0 flex items-center gap-2 overflow-x-auto hidden">
-      <span class="text-xs text-gray-400 font-semibold uppercase px-2 shrink-0">Jump To:</span>
-      <div id="synth-jump-links" class="flex gap-2 overflow-x-auto"></div>
-    </div>
+      <!-- STATE 2: LOADING SCREEN -->
+      <div id="loading-card" class="bg-slate-950/60 border border-slate-800/80 shadow-2xl rounded-2xl p-10 backdrop-blur-xl flex flex-col items-center justify-center text-center hidden">
+        <div class="relative w-20 h-20 mb-6">
+          <!-- Double circular spinning glows -->
+          <div class="absolute inset-0 border-4 border-t-indigo-500 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+          <div class="absolute inset-2 border-4 border-b-cyan-500 border-t-transparent border-r-transparent border-l-transparent rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+          <div class="absolute inset-4 bg-indigo-500/10 rounded-full flex items-center justify-center">
+            <span class="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-ping"></span>
+          </div>
+        </div>
+        <h3 class="text-lg font-bold text-white mb-2">Analyzing Resume</h3>
+        <p class="text-sm text-indigo-400 code-font mb-4" id="loading-step">Parsing uploaded document...</p>
+        <div class="w-48 h-1 bg-slate-900 rounded-full overflow-hidden">
+          <div class="h-full bg-gradient-to-r from-violet-500 to-cyan-500 animate-pulse" style="width: 100%;"></div>
+        </div>
+      </div>
 
-    <div id="synth-results" class="flex-1 overflow-y-auto space-y-4 pr-1 hidden">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="synth-ticker-cards"></div>
-      
-      <div class="bg-gray-900 border border-gray-800 p-4 rounded-xl prose max-w-none text-gray-200" id="synth-synthesis-card">
-        <div class="border-b border-gray-800 pb-2 mb-3 flex justify-between items-center no-prose">
-          <h3 class="text-base font-bold text-white">Comparative Synthesis Report</h3>
-          <div class="flex gap-2">
-            <button onclick="copySynthesis(this)" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2 py-1 rounded transition flex items-center gap-1 cursor-pointer" title="Copy report">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-              <span>Copy</span>
+      <!-- STATE 3: RESULTS AREA -->
+      <div id="results-card" class="flex-1 flex flex-col overflow-hidden hidden">
+        
+        <!-- Header Actions panel -->
+        <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-4 mb-4 backdrop-blur-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-indigo-950/60 border border-indigo-900/50 rounded-lg text-indigo-400">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-.621-.504-1.125-1.125-1.125H9.75M8.25 21h8.25a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0016.5 4.5H14.85c-.19-.466-.653-.75-1.185-.75h-3.33c-.532 0-1 .284-1.185.75H6.75A2.25 2.25 0 004.5 6.75v12a2.25 2.25 0 002.25 2.25h1.5z" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-sm font-bold text-white">Systems Critique Report</h2>
+              <p class="text-xs text-gray-500 code-font" id="extracted-meta">Extracted 0 bytes</p>
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-2.5">
+            <button id="copy-btn" class="flex-1 sm:flex-initial text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 text-gray-300 px-3.5 py-2 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H5.25m11.9-3.664A2.251 2.251 0 0015 2.25h-1.5a2.251 2.251 0 00-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M16.5 7.5h.75m-.75 3h.75m-.75 3h.75M6.75 21h10.5a2.25 2.25 0 002.25-2.25V7.5H6.75v13.5z" />
+              </svg>
+              <span>Copy Markdown</span>
             </button>
-            <button onclick="downloadSynthesis()" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-2 py-1 rounded transition flex items-center gap-1 cursor-pointer" title="Download report">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-              <span>Download</span>
+            <button id="download-btn" class="flex-1 sm:flex-initial text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 text-gray-300 px-3.5 py-2 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              <span>Download MD</span>
+            </button>
+            <button id="new-critique-btn" class="text-xs bg-indigo-900/40 hover:bg-indigo-900/60 border border-indigo-800/50 text-indigo-300 px-3.5 py-2 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1">
+              <span>New Critique</span>
             </button>
           </div>
         </div>
-        <div id="synth-synthesis-content" class="text-sm leading-relaxed"></div>
+
+        <!-- Scrollable Critique Content -->
+        <div class="flex-1 bg-slate-950/60 border border-slate-800/80 rounded-xl p-5 sm:p-8 backdrop-blur-xl overflow-y-auto">
+          <div id="critique-content" class="prose max-w-none"></div>
+        </div>
+
       </div>
-    </div>
 
-    <div id="synth-loading" class="flex-1 flex flex-col items-center justify-center text-gray-400 hidden">
-      <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-2"></div>
-      <p class="text-sm font-medium" id="synth-loading-text">Fetching SEC EDGAR database...</p>
-    </div>
+    </main>
 
-    <div id="synth-placeholder" class="flex-1 flex flex-col items-center justify-center text-gray-500 text-sm border-2 border-dashed border-gray-800 rounded-xl p-8">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mb-2 text-gray-600">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
-      </svg>
-      <span>No tickers analyzed yet. Enter tickers above and click Synthesize.</span>
-    </div>
+    <!-- FOOTER -->
+    <footer class="mt-8 pt-4 border-t border-slate-900 text-center text-xs text-gray-600 shrink-0">
+      <p class="code-font">&copy; 2026 CS Resume Critique. Powered by Cloudflare Workers & Workers AI.</p>
+    </footer>
+
   </div>
 
   <script src="/app.js"></script>

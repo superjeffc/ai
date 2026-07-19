@@ -22,9 +22,9 @@ export default {
       });
     }
 
-    // Only allow POST requests at "/"
+    // Only allow POST requests at "/", "/api", or "/api/"
     const url = new URL(request.url);
-    if (url.pathname !== "/") {
+    if (url.pathname !== "/" && url.pathname !== "/api" && url.pathname !== "/api/") {
       return new Response(
         JSON.stringify({ error: "Not Found" }),
         {
@@ -33,6 +33,7 @@ export default {
         }
       );
     }
+
 
     if (request.method !== "POST") {
       return new Response(

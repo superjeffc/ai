@@ -4,3 +4,7 @@ compatibility_date = "2026-07-18"
 
 [ai]
 binding = "AI"
+
+[[routes]]
+pattern = "ai.superjeffc.com/api/*"
+custom_domain = true
