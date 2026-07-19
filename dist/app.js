@@ -19,7 +19,6 @@ const loadingStep = document.getElementById('loading-step');
 const resultsCard = document.getElementById('results-card');
 const critiqueContent = document.getElementById('critique-content');
 const extractedMeta = document.getElementById('extracted-meta');
-const copyBtn = document.getElementById('copy-btn');
 const downloadHtmlTopBtn = document.getElementById('download-html-top-btn');
 const newCritiqueBtn = document.getElementById('new-critique-btn');
 
@@ -437,25 +436,7 @@ function fitToPageTarget(element, targetPages) {
   }
 }
 
-// Copy markdown to clipboard
-copyBtn.addEventListener('click', async () => {
-  if (!currentCritiqueMarkdown) return;
-  try {
-    await navigator.clipboard.writeText(currentCritiqueMarkdown);
-    const originalText = copyBtn.innerHTML;
-    copyBtn.innerHTML = `
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-      <span>Copied!</span>
-    `;
-    copyBtn.classList.add('border-green-500/50', 'text-green-400');
-    setTimeout(() => {
-      copyBtn.innerHTML = originalText;
-      copyBtn.classList.remove('border-green-500/50', 'text-green-400');
-    }, 2000);
-  } catch (err) {
-    alert("Failed to copy report to clipboard.");
-  }
-});
+
 
 // Download HTML report
 function handleDownloadHtml() {
