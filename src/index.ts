@@ -100,8 +100,7 @@ Guidelines for the refined resume HTML:
    - Use highly concise and high-impact phrasing to avoid text wrapping onto extra lines.
 3. Make it look professional: use clean headings (e.g. style="font-size: 1.1em; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 0.2em; margin-top: 0.6em; margin-bottom: 0.3em; color: #000000;"), a compact top header, and technical skills matrix.
 4. ONLY PURE BLACK FONT IS PERMITTED: You must only use pure black color (#000000 or #111111) for all text elements. Do not use any colored text or accent colors.
-5. Layout break controls: To prevent elements (like bullet items, headings, or table rows) from being split or sliced vertically in half across PDF page boundaries, apply the CSS property style="page-break-inside: avoid; break-inside: avoid;" ONLY to individual work experience role wrapper divs (each specific job entry), individual project wrapper divs, and list items (li). Do NOT apply page-break-inside: avoid to the overall main section wrappers (like the main Professional Experience container or main Projects container), as they must be allowed to split across pages naturally.
-6. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.`;
+5. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.`;
 
         const userPrompt = `Here is the original critique report:
 ${originalCritique}
@@ -336,9 +335,8 @@ Guidelines for the rewritten resume HTML:
    - Use concise and high-impact phrasing to avoid text wrapping onto unnecessary extra lines.
 3. Make it look professional: use clean headings (e.g. style="font-size: 1.1em; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 0.2em; margin-top: 0.7em; margin-bottom: 0.3em; color: #000000;"), a compact top header (candidate's name, contact details in a single line or double line with separators), a neat technical skills matrix layout (grouped list or comma-separated blocks), and well-spaced work experience sections with bullet points.
 4. ONLY PURE BLACK FONT IS PERMITTED: You must only use pure black color (#000000 or #111111) for all text elements. Do not use any colored text (such as blue for links, or grey/blue for headers/subsections). Accent lines (like section borders) must also be black or dark grey.
-5. Layout break controls: To prevent elements (like bullet items, headings, or table rows) from being split or sliced vertically in half across PDF page boundaries, apply the CSS property style="page-break-inside: avoid; break-inside: avoid;" ONLY to individual work experience role wrapper divs (each specific job entry), individual project wrapper divs, and list items (li). Do NOT apply page-break-inside: avoid to the overall main section wrappers (like the main Professional Experience container or main Projects container), as they must be allowed to split across pages naturally.
-6. Keep the styling clean, modern, and professional (white background, black text, clean margins, compact line height). Use standard inline CSS styles for consistent rendering. Do not output any markdown formatting or markdown code blocks inside this HTML section.
-7. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.`;
+5. Keep the styling clean, modern, and professional (white background, black text, clean margins, compact line height). Use standard inline CSS styles for consistent rendering. Do not output any markdown formatting or markdown code blocks inside this HTML section.
+6. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.`;
 
       // 7. Request evaluation from the AGY bridge server
       let critique = "";

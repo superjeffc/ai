@@ -521,8 +521,7 @@ function handleDownloadPdf() {
       scrollX: 0,
       scrollY: 0
     },
-    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
   };
   
   const buttonsToDisable = [];
