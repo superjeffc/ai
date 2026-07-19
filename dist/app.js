@@ -288,7 +288,9 @@ analyzeBtn.addEventListener('click', async () => {
       fitToPageTarget(resumePreviewContent, targetPageCount);
     }
     
-    extractedMeta.textContent = `Processed ${formatBytes(data.extractedTextLength || 0)} of raw resume text`;
+    if (extractedMeta) {
+      extractedMeta.textContent = `Processed ${formatBytes(data.extractedTextLength || 0)} of raw resume text`;
+    }
 
     // -------------------------------------------------------------
     // AUTOMATIC VISUAL REFINEMENT LOOP (Pass 2)
