@@ -482,12 +482,35 @@ if (downloadPdfBtn) {
       return;
     }
     
+    const previewContainer = document.getElementById('resume-preview-container');
+    const scrollParent = previewContainer ? previewContainer.parentElement : null;
+    
+    // Save original styles/scroll position
+    const originalPadding = previewContainer ? previewContainer.style.padding : '';
+    const originalMinHeight = previewContainer ? previewContainer.style.minHeight : '';
+    const originalScrollTop = scrollParent ? scrollParent.scrollTop : 0;
+    
+    // Temporarily clear styling constraints and scroll to top to prevent html2canvas offsets
+    if (previewContainer) {
+      previewContainer.style.padding = '0px';
+      previewContainer.style.minHeight = '0px';
+    }
+    if (scrollParent) {
+      scrollParent.scrollTop = 0;
+    }
+    
     const originalName = selectedFile ? selectedFile.name.replace('.pdf', '') : 'resume';
     const opt = {
       margin:       [0.12, 0.15, 0.12, 0.15],
       filename:     `${originalName}_optimized.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+      html2canvas:  { 
+        scale: 2, 
+        useCORS: true, 
+        letterRendering: true,
+        scrollX: 0,
+        scrollY: 0
+      },
       jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
     
@@ -498,11 +521,29 @@ if (downloadPdfBtn) {
     html2pdf().set(opt).from(element).save().then(() => {
       downloadPdfBtn.disabled = false;
       downloadPdfBtn.innerHTML = oldText;
+      
+      // Restore styles and scroll position
+      if (previewContainer) {
+        previewContainer.style.padding = originalPadding;
+        previewContainer.style.minHeight = originalMinHeight;
+      }
+      if (scrollParent) {
+        scrollParent.scrollTop = originalScrollTop;
+      }
     }).catch(err => {
       console.error("PDF generation failed:", err);
       alert("Failed to generate PDF. Please try again.");
       downloadPdfBtn.disabled = false;
       downloadPdfBtn.innerHTML = oldText;
+      
+      // Restore styles and scroll position
+      if (previewContainer) {
+        previewContainer.style.padding = originalPadding;
+        previewContainer.style.minHeight = originalMinHeight;
+      }
+      if (scrollParent) {
+        scrollParent.scrollTop = originalScrollTop;
+      }
     });
   });
 }
