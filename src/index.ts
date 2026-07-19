@@ -1,5 +1,6 @@
 export interface Env {
   AI: any;
+  API_SECRET: string;
 }
 
 export default {
@@ -133,20 +134,31 @@ Analyze the candidate's resume text and provide a rigorous, objective, and highl
 
 Return your critique in clean, beautifully structured Markdown (with proper headings, lists, and bold text). Be direct, professional, and actionable. Do not output conversational preamble or postamble; start directly with the Markdown report.`;
 
-      // 6. Request evaluation from the LLM engine
-      let aiResult;
+      // 6. Request evaluation from the AGY bridge server
+      let critique = "";
       try {
-        aiResult = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fp8", {
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: `Here is my resume text parsed from PDF:\n\n${resumeMarkdown}` }
-          ],
-          max_tokens: 2048
+        const bridgeResponse = await fetch("https://agy.superjeffc.com/execute", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${env.API_SECRET || ""}`
+          },
+          body: JSON.stringify({
+            systemPrompt,
+            userPrompt: `Here is my resume text parsed from PDF:\n\n${resumeMarkdown}`
+          })
         });
+
+        if (!bridgeResponse.ok) {
+          const errText = await bridgeResponse.text();
+          throw new Error(`Bridge returned status ${bridgeResponse.status}: ${errText}`);
+        }
+
+        critique = await bridgeResponse.text();
       } catch (aiErr: any) {
-        console.error("Workers AI error:", aiErr);
+        console.error("AGY Bridge error:", aiErr);
         return new Response(
-          JSON.stringify({ error: `Workers AI execution failed: ${aiErr.message || aiErr}` }),
+          JSON.stringify({ error: `AGY Bridge execution failed: ${aiErr.message || aiErr}` }),
           {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -154,10 +166,9 @@ Return your critique in clean, beautifully structured Markdown (with proper head
         );
       }
 
-      const critique = aiResult?.response || aiResult?.text || "";
       if (!critique) {
         return new Response(
-          JSON.stringify({ error: "Empty response returned from Cloudflare Workers AI model." }),
+          JSON.stringify({ error: "Empty response returned from AGY Bridge." }),
           {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
