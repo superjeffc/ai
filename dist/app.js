@@ -267,6 +267,7 @@ analyzeBtn.addEventListener('click', async () => {
           <p>No rewritten resume generated. Check the Critique tab for recommendations.</p>
         </div>
       `;
+      fitToPageTarget(resumePreviewContent, targetPageCount);
     }
     
     extractedMeta.textContent = `Processed ${formatBytes(data.extractedTextLength || 0)} of raw resume text`;
@@ -325,6 +326,7 @@ analyzeBtn.addEventListener('click', async () => {
               
               resumeHtmlPart = refinedHtml;
               resumePreviewContent.innerHTML = resumeHtmlPart;
+              fitToPageTarget(resumePreviewContent, targetPageCount);
               console.log(`Refinement successful. New height: ${resumePreviewContent.scrollHeight}px`);
             }
           }
@@ -351,6 +353,43 @@ analyzeBtn.addEventListener('click', async () => {
     }
   }
 });
+
+// Instantaneous client-side font sizing refinement loop to match targeted page height
+function fitToPageTarget(element, targetPages) {
+  if (!element || !element.innerHTML.trim() || element.innerHTML.includes('No rewritten resume generated')) {
+    return;
+  }
+  
+  // Reset any previous dynamic sizing
+  element.style.fontSize = "1.0em";
+  
+  const maxAllowedHeight = targetPages * 1050 + (targetPages - 1) * 20;
+  const minRequiredHeight = (targetPages - 1) * 1123 + 750;
+  
+  let currentScale = 1.0;
+  let height = element.scrollHeight;
+  console.log(`Auto-fitting layout: current height is ${height}px. Target range: ${minRequiredHeight}px - ${maxAllowedHeight}px`);
+  
+  // Scale down step-by-step if too tall
+  if (height > maxAllowedHeight) {
+    while (element.scrollHeight > maxAllowedHeight && currentScale > 0.72) {
+      currentScale -= 0.015;
+      element.style.fontSize = `${currentScale}em`;
+    }
+    console.log(`Scaled down to ${currentScale}em. New height: ${element.scrollHeight}px`);
+  }
+  // Scale up step-by-step if too short (only if targetPages > 1 or it is very short)
+  else if (height < minRequiredHeight) {
+    const minScaleUpThreshold = targetPages === 1 ? 600 : minRequiredHeight;
+    if (height < minScaleUpThreshold) {
+      while (element.scrollHeight < minScaleUpThreshold && currentScale < 1.15) {
+        currentScale += 0.015;
+        element.style.fontSize = `${currentScale}em`;
+      }
+      console.log(`Scaled up to ${currentScale}em. New height: ${element.scrollHeight}px`);
+    }
+  }
+}
 
 // Copy markdown to clipboard
 copyBtn.addEventListener('click', async () => {

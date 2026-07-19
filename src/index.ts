@@ -94,10 +94,10 @@ Followed by the newly refined and optimized HTML resume.
 Guidelines for the refined resume HTML:
 1. Wrap everything inside a single container div (like <div style="font-family: Arial, sans-serif; color: #000000; line-height: 1.35; padding: 0px 10px; box-sizing: border-box;">).
 2. STRICT REQUIREMENT: THE ENTIRE REWRITTEN RESUME MUST FIT ON EXACTLY ${pageLabel}. To guarantee this:
-   - Use small, compact font sizes: Name/Header = 18px-20px; Section Titles = 11px-12px; Body text and bullets = 9.5px-10.5px.
+   - Use relative font sizes (e.g. style="font-size: 1.8em;" for candidate name; style="font-size: 1.1em;" for section headings; style="font-size: 0.95em;" for body text and bullets) rather than absolute pixel font-sizes. This allows the wrapper to dynamically scale the typography to fit the page target.
    - Keep spacing extremely tight: margins between sections should be at most 6px, and margins between bullet points should be at most 2px.
    - Use highly concise and high-impact phrasing to avoid text wrapping onto extra lines.
-3. Make it look professional: use clean headings (e.g. style="font-size: 11px; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 2px; margin-top: 6px; margin-bottom: 3px; color: #000000;"), a compact top header, and technical skills matrix.
+3. Make it look professional: use clean headings (e.g. style="font-size: 1.1em; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 2px; margin-top: 6px; margin-bottom: 3px; color: #000000;"), a compact top header, and technical skills matrix.
 4. ONLY PURE BLACK FONT IS PERMITTED: You must only use pure black color (#000000 or #111111) for all text elements. Do not use any colored text or accent colors.
 5. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.`;
 
@@ -328,10 +328,10 @@ Followed by the fully rewritten and optimized resume based on your critique, for
 Guidelines for the rewritten resume HTML:
 1. Wrap everything inside a single container div (like <div style="font-family: Arial, sans-serif; color: #000000; line-height: 1.35; padding: 0px 10px; box-sizing: border-box;">).
 2. STRICT REQUIREMENT: THE ENTIRE REWRITTEN RESUME MUST FIT ON EXACTLY ${pageLabel}. To guarantee this:
-   - Use small, compact font sizes: Name/Header = 18px-20px; Section Titles = 11px-12px; Body text and bullets = 9.5px-10.5px.
+   - Use relative font sizes (e.g. style="font-size: 1.8em;" for candidate name; style="font-size: 1.1em;" for section headings; style="font-size: 0.95em;" for body text and bullets) rather than absolute pixel font-sizes. This allows the wrapper to dynamically scale the typography to fit the page target.
    - Keep spacing extremely tight: margins between sections should be at most 8px, and margins between bullet points should be at most 2px.
    - Use concise and high-impact phrasing to avoid text wrapping onto unnecessary extra lines.
-3. Make it look professional: use clean headings (e.g. style="font-size: 11px; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 2px; margin-top: 8px; margin-bottom: 4px; color: #000000;"), a compact top header (candidate's name, contact details in a single line or double line with separators), a neat technical skills matrix layout (grouped list or comma-separated blocks), and well-spaced work experience sections with bullet points.
+3. Make it look professional: use clean headings (e.g. style="font-size: 1.1em; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 2px; margin-top: 8px; margin-bottom: 4px; color: #000000;"), a compact top header (candidate's name, contact details in a single line or double line with separators), a neat technical skills matrix layout (grouped list or comma-separated blocks), and well-spaced work experience sections with bullet points.
 4. ONLY PURE BLACK FONT IS PERMITTED: You must only use pure black color (#000000 or #111111) for all text elements. Do not use any colored text (such as blue for links, or grey/blue for headers/subsections). Accent lines (like section borders) must also be black or dark grey.
 5. Keep the styling clean, modern, and professional (white background, black text, clean margins, compact line height). Use standard inline CSS styles for consistent rendering. Do not output any markdown formatting or markdown code blocks inside this HTML section.
 6. Output ONLY the raw HTML content immediately following the delimiter. Do NOT wrap the HTML block in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.`;
