@@ -229,11 +229,19 @@ analyzeBtn.addEventListener('click', async () => {
     let critiquePart = rawCritique;
     let resumeHtmlPart = "";
 
-    const delimiter = "=== REWRITTEN RESUME ===";
-    if (rawCritique.includes(delimiter)) {
-      const parts = rawCritique.split(delimiter);
+    // Regular expression to match "=== REWRITTEN RESUME ===" case-insensitively, allowing variation in equals count or markdown formatting.
+    const delimiterRegex = /(?:#|\*|_)*\s*={3,}\s*REWRITTEN RESUME\s*={3,}\s*(?:#|\*|_)*/i;
+    
+    if (delimiterRegex.test(rawCritique)) {
+      const parts = rawCritique.split(delimiterRegex);
       critiquePart = parts[0].trim();
-      resumeHtmlPart = parts[1].trim();
+      let rawHtml = parts[1].trim();
+      
+      // Clean up markdown code blocks if the model wrapped the HTML response
+      rawHtml = rawHtml.replace(/^```(html)?/i, "").trim();
+      rawHtml = rawHtml.replace(/```$/, "").trim();
+      
+      resumeHtmlPart = rawHtml;
     } else {
       critiquePart = rawCritique;
       resumeHtmlPart = `
