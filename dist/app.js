@@ -141,10 +141,27 @@ analyzeBtn.addEventListener('click', async () => {
       body: formData
     });
 
-    const data = await response.json();
-
     if (!response.ok) {
-      throw new Error(data.error || `HTTP error! Status: ${response.status}`);
+      let errorMsg = `HTTP error! Status: ${response.status}`;
+      try {
+        const errText = await response.text();
+        try {
+          const errJson = JSON.parse(errText);
+          errorMsg = errJson.error || errorMsg;
+        } catch {
+          if (errText && errText.trim().length < 500) {
+            errorMsg = errText;
+          }
+        }
+      } catch {}
+      throw new Error(errorMsg);
+    }
+
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseErr) {
+      throw new Error(`Failed to parse API response as JSON: ${parseErr.message}`);
     }
 
     currentCritiqueMarkdown = data.critique;
