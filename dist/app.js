@@ -269,7 +269,6 @@ analyzeBtn.addEventListener('click', async () => {
   const formData = new FormData();
   formData.append('resume', selectedFile);
   
-  const jobDesc = jobDescInput ? jobDescInput.value.trim() : "";
   if (jobDesc) {
     formData.append('jobDescription', jobDesc);
   }
