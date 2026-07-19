@@ -76,6 +76,14 @@ Analyze the resume strictly on:
    - Suggest removing or heavily condensing non-technical or unrelated experiences (e.g., cashier roles, unrelated student societies, basic tutoring) that waste valuable vertical whitespace.
    - Advise on focusing formatting and structure to maximize layout efficiency.
 
+4. **Professional Brand**:
+   - Is the user's e-mail professional?
+   - If there are multiple links, are they consistent with the professional brand?
+
+5. **Career Progression**:
+   - Does the professional experience show career progression?
+   - If not, suggest the user to break up a role into logical roles that indicate career progression.
+
 Return your critique in clean, beautifully structured Markdown (with proper headings, lists, and bold text). Be direct, professional, and actionable. Do not output conversational preamble or postamble; start directly with the Markdown report.
 
 At the very end of your response, output the exact delimiter on a new line:
