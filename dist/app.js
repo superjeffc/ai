@@ -42,18 +42,15 @@ let selectedFile = null;
 let currentCritiqueMarkdown = "";
 let loadingInterval = null;
 
-// Loading step messages to cycle through for user engagement
 const loadingMessages = [
-  "Uploading PDF to Cloudflare Worker isolate...",
-  "Initializing in-memory ArrayBuffer parser...",
-  "Extracting selectable text elements via unpdf...",
-  "Formatting prompt with systems engineering directives...",
-  "Invoking Workers AI Llama-3.1 model...",
-  "Analyzing technical skill matrix groupings...",
-  "Evaluating metric quantification of bullet points...",
-  "Applying whitespace noise reduction filters...",
-  "Compiling comprehensive critique report...",
-  "Optimizing layout recommendation parameters..."
+  "Reading resume file...",
+  "Extracting text content...",
+  "Analyzing technical skills matrix...",
+  "Evaluating experience and bullet metrics...",
+  "Identifying areas for layout improvement...",
+  "Generating recruiter critique...",
+  "Polishing rewritten resume suggestions...",
+  "Assembling final critique report..."
 ];
 
 // Initialize Drag & Drop Events
