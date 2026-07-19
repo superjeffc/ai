@@ -199,7 +199,7 @@ At the very end of your response, output the exact delimiter on a new line:
 === REWRITTEN RESUME ===
 Followed by the fully rewritten and optimized resume based on your critique, formatted as a single, self-contained HTML block.
 Guidelines for the rewritten resume HTML:
-1. Wrap everything inside a single container div (like <div style="font-family: Arial, sans-serif; color: #111; line-height: 1.35; padding: 15px 25px; box-sizing: border-box;">).
+1. Wrap everything inside a single container div (like <div style="font-family: Arial, sans-serif; color: #111; line-height: 1.35; padding: 0px 20px; box-sizing: border-box;">).
 2. STRICT REQUIREMENT: THE ENTIRE REWRITTEN RESUME MUST FIT ON EXACTLY A SINGLE PAGE. To guarantee this:
    - Use small, compact font sizes: Name/Header = 18px-20px; Section Titles = 11px-12px; Body text and bullets = 9.5px-10.5px.
    - Keep spacing extremely tight: margins between sections should be at most 8px, and margins between bullet points should be at most 2px.
