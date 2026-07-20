@@ -252,14 +252,28 @@ export default {
         resumeMarkdown.toLowerCase().includes("no text found") ||
         resumeMarkdown.toLowerCase().includes("keyword gap");
 
-      if (!resumeMarkdown || resumeMarkdown.trim().length < 150 || isParserWarning) {
+      // Verify if the extracted text contains common resume sections or keywords to filter out binary noise or scanned documents
+      const resumeKeywords = [
+        "experience", "work", "employment", "history", "professional", 
+        "education", "university", "college", "school", "academic",
+        "skills", "technologies", "tools", "languages", 
+        "contact", "email", "phone", "address", "linkedin", "github"
+      ];
+      const hasResumeKeywords = resumeKeywords.some(keyword => 
+        resumeMarkdown.toLowerCase().includes(keyword)
+      );
+
+      if (!resumeMarkdown || resumeMarkdown.trim().length < 150 || isParserWarning || !hasResumeKeywords) {
+        console.warn(`Validation failed. Legible text length: ${resumeMarkdown ? resumeMarkdown.trim().length : 0} chars. Keywords match: ${hasResumeKeywords}. Warning: ${isParserWarning}.`);
+        console.warn(`Extracted preview: "${resumeMarkdown ? resumeMarkdown.substring(0, 150) : ""}"`);
+        
         // Clear lock on failure
         if (clientIP !== "anonymous") {
           await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
         }
         
         let errorMsg = "Failed to extract legible text from the uploaded file.";
-        if (isPdf || isParserWarning) {
+        if (isPdf || isParserWarning || !hasResumeKeywords) {
           errorMsg = "The uploaded PDF appears to be a scanned image with no readable text layer. Please upload a standard PDF with selectable text, or upload a PNG/JPEG image of your résumé directly.";
         }
         
