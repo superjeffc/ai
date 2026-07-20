@@ -1,6 +1,14 @@
 import {
-  getCritiqueSystemPrompt,
-  getCritiqueUserPrompt
+  getAtsSystemPrompt,
+  getAtsUserPrompt,
+  getGrammarSystemPrompt,
+  getGrammarUserPrompt,
+  getLayoutSystemPrompt,
+  getLayoutUserPrompt,
+  getEditorSystemPrompt,
+  getEditorUserPrompt,
+  getValidatorSystemPrompt,
+  getValidatorUserPrompt
 } from "./prompts";
 
 export interface Env {
@@ -9,6 +17,26 @@ export interface Env {
   CF_CLIENT_ID?: string;
   CF_CLIENT_SECRET?: string;
   RESUME_CRITIQUE_KV: KVNamespace;
+}
+
+async function callAgyBridge(env: Env, systemPrompt: string, userPrompt: string): Promise<string> {
+  const bridgeResponse = await fetch("https://agy.superjeffc.com/execute", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${env.API_SECRET || ""}`,
+      "CF-Access-Client-Id": env.CF_CLIENT_ID || "",
+      "CF-Access-Client-Secret": env.CF_CLIENT_SECRET || ""
+    },
+    body: JSON.stringify({ systemPrompt, userPrompt })
+  });
+
+  if (!bridgeResponse.ok) {
+    const errText = await bridgeResponse.text();
+    throw new Error(`Bridge returned status ${bridgeResponse.status}: ${errText}`);
+  }
+
+  return await bridgeResponse.text();
 }
 
 export default {
@@ -231,38 +259,90 @@ export default {
       }
       const pageLabel = targetPageCount === 1 ? "SINGLE PAGE" : `${targetPageCount} PAGES`;
 
-      // 6. Build the CS-specialized prompt with Prompt Injection defense
-      const systemPrompt = getCritiqueSystemPrompt(pageLabel, !!jobDescription);
-      const userPrompt = getCritiqueUserPrompt(resumeMarkdown, jobDescription);
-
-      // 7. Request evaluation from the AGY bridge server
+      // 6. Request evaluation from parallel specialized agents
       let critique = "";
       try {
-        const bridgeResponse = await fetch("https://agy.superjeffc.com/execute", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${env.API_SECRET || ""}`,
-            "CF-Access-Client-Id": env.CF_CLIENT_ID || "",
-            "CF-Access-Client-Secret": env.CF_CLIENT_SECRET || ""
-          },
-          body: JSON.stringify({ systemPrompt, userPrompt })
-        });
+        console.log("Triggering parallel specialized critic agents...");
+        const criticPromises: Promise<string>[] = [
+          callAgyBridge(env, getGrammarSystemPrompt(), getGrammarUserPrompt(resumeMarkdown)),
+          callAgyBridge(env, getLayoutSystemPrompt(pageLabel), getLayoutUserPrompt(resumeMarkdown))
+        ];
 
-        if (!bridgeResponse.ok) {
-          const errText = await bridgeResponse.text();
-          throw new Error(`Bridge returned status ${bridgeResponse.status}: ${errText}`);
+        let atsPromiseIndex = -1;
+        if (jobDescription) {
+          atsPromiseIndex = criticPromises.push(
+            callAgyBridge(env, getAtsSystemPrompt(), getAtsUserPrompt(resumeMarkdown, jobDescription))
+          ) - 1;
         }
 
-        critique = await bridgeResponse.text();
+        const results = await Promise.all(criticPromises);
+        const grammarFeedback = results[0];
+        const layoutFeedback = results[1];
+        const atsFeedback = atsPromiseIndex !== -1 ? results[atsPromiseIndex] : "";
+
+        // Combine critiques
+        let compositeCritiques = `### Grammar, Tone, and Impact Feedback\n${grammarFeedback}\n\n### Formatting and Layout Feedback\n${layoutFeedback}`;
+        if (atsFeedback) {
+          compositeCritiques = `### ATS Alignment and Keyword Feedback\n${atsFeedback}\n\n` + compositeCritiques;
+        }
+
+        // 7. Self-Correction Loop (Editor-in-Chief & Validator Agents)
+        let validationFeedback = "";
+        let attempts = 0;
+        const maxAttempts = 3;
+        let finalHtml = "";
+        let finalCritique = "";
+
+        while (attempts < maxAttempts) {
+          attempts++;
+          console.log(`Self-correction loop: Attempt ${attempts}/${maxAttempts}`);
+
+          const editorOutput = await callAgyBridge(
+            env,
+            getEditorSystemPrompt(pageLabel),
+            getEditorUserPrompt(resumeMarkdown, jobDescription, compositeCritiques, validationFeedback)
+          );
+
+          const parts = editorOutput.split("=== REWRITTEN RESUME ===");
+          const critiquePart = parts[0]?.trim() || "";
+          const htmlPart = parts[1]?.trim() || "";
+
+          finalCritique = critiquePart;
+          finalHtml = htmlPart;
+
+          if (!finalHtml) {
+            validationFeedback = "Validation Error: Could not find '=== REWRITTEN RESUME ===' delimiter or the HTML block is empty.";
+            continue;
+          }
+
+          // Run compliance validation
+          console.log(`Auditing HTML draft (Attempt ${attempts})...`);
+          const auditResult = (await callAgyBridge(
+            env,
+            getValidatorSystemPrompt(),
+            getValidatorUserPrompt(finalHtml)
+          )).trim();
+
+          if (auditResult.toUpperCase() === "PASS") {
+            console.log("HTML validation passed compliance audit.");
+            break;
+          } else {
+            console.warn(`Validation failed on attempt ${attempts}. Issues:\n${auditResult}`);
+            validationFeedback = auditResult;
+          }
+        }
+
+        // If after loops we don't have the final HTML, construct a fallback
+        critique = finalCritique + "\n\n=== REWRITTEN RESUME ===\n" + finalHtml;
+
       } catch (aiErr: any) {
-        console.error("AGY Bridge error:", aiErr);
+        console.error("AGY Bridge / Multi-agent execution error:", aiErr);
         // Clear lock on failure
         if (clientIP !== "anonymous") {
           await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
         }
         return new Response(
-          JSON.stringify({ error: `AGY Bridge execution failed: ${aiErr.message || aiErr}` }),
+          JSON.stringify({ error: `Multi-agent evaluation failed: ${aiErr.message || aiErr}` }),
           {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -276,7 +356,7 @@ export default {
           await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
         }
         return new Response(
-          JSON.stringify({ error: "Empty response returned from AGY Bridge." }),
+          JSON.stringify({ error: "Empty critique returned from evaluation loop." }),
           {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
