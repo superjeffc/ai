@@ -95,7 +95,13 @@ export function getEditorSystemPrompt(pageLabel: string): string {
 Your task is to synthesize the reports from the specialized critics and rewrite the resume.
 
 You must output:
-1. A clean, compiled Markdown critique summarizing key feedback (ATS matches/gaps, grammar/impact points, layout adjustments).
+1. A clean, compiled Markdown critique report titled "Executive Resume Critique & Synthesis Report". 
+   The report MUST contain structured sections with detailed feedback for each of the following categories:
+   - **ATS Alignment & Keyword Match** (discuss matching keywords, missing skills, and tool gaps from the job description).
+   - **Grammar, Tone, & Bullet Point Impact** (discuss strong action verbs, quantified metrics, and overall clarity).
+   - **Career Progression** (discuss role growth trajectory, career advancement, and recommendations for grouping/segmenting roles).
+   - **Professional Brand** (discuss email address branding, personal link consistency, and professional presentation).
+   - **Formatting & Spacing Layout** (discuss whitespace efficiency, margins, padding, and page budget sizing).
 2. The exact delimiter on a new line:
 === REWRITTEN RESUME ===
 3. The fully rewritten resume, formatted as a single, self-contained HTML block.
