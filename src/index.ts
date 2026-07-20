@@ -194,17 +194,19 @@ export default {
           const view = new Uint8Array(pdfBuffer);
           const text = decoder.decode(view);
           
-          const countMatches = [...text.matchAll(/\/Count\s+(\d+)/g)];
-          if (countMatches.length > 0) {
-            let maxPages = 1;
-            for (const match of countMatches) {
+          // Look for the root /Pages object which contains the true page count (scoped by Type /Pages)
+          const pagesMatches = [...text.matchAll(/\/Type\s*\/Pages[\s\S]*?\/Count\s+(\d+)/g)];
+          if (pagesMatches.length > 0) {
+            let pagesVal = 1;
+            for (const match of pagesMatches) {
               const count = parseInt(match[1], 10);
-              if (count > maxPages && count < 20) {
-                maxPages = count;
+              if (count > 0 && count < 20) {
+                pagesVal = count; // Root /Pages count
               }
             }
-            targetPageCount = maxPages;
+            targetPageCount = pagesVal;
           } else {
+            // Fallback to counting occurrences of individual /Type /Page objects
             const pageMatches = text.match(/\/Type\s*\/Page\b/g);
             if (pageMatches && pageMatches.length > 0 && pageMatches.length < 20) {
               targetPageCount = pageMatches.length;
