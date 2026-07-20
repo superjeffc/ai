@@ -38,7 +38,6 @@ const resumePreviewContent = document.getElementById('resume-preview-content');
 const downloadPdfBtn = document.getElementById('download-pdf-btn');
 const downloadPdfTopBtn = document.getElementById('download-pdf-top-btn');
 const downloadHtmlBtn = document.getElementById('download-html-btn');
-const printPdfBtn = document.getElementById('print-pdf-btn');
 const jobDescInput = document.getElementById('job-desc-input');
 const charCount = document.getElementById('char-count');
 const charLimitWarning = document.getElementById('char-limit-warning');
@@ -552,11 +551,11 @@ if (tabCritiqueBtn && tabResumeBtn && critiquePanel && resumePanel) {
   });
 }
 
-// Open print window to generate high-quality searchable vector PDF
+// Open print window to generate high-quality searchable vector PDF using print binary-search
 function handlePrintPdf() {
   const element = document.getElementById('resume-preview-content');
   if (!element || !resumePreviewContent.innerHTML.trim() || resumePreviewContent.innerHTML.includes('No rewritten résumé generated')) {
-    alert("No rewritten résumé content available to print.");
+    alert("No rewritten résumé content available to download.");
     return;
   }
 
@@ -565,11 +564,9 @@ function handlePrintPdf() {
 
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
-    alert("Please allow popups to print the résumé.");
+    alert("Please allow popups to download the PDF résumé.");
     return;
   }
-
-  const originalFontSize = element.style.fontSize || '1.0em';
 
   printWindow.document.write(`
 <!DOCTYPE html>
@@ -590,7 +587,9 @@ function handlePrintPdf() {
       font-family: Arial, sans-serif;
     }
     #print-content {
-      font-size: ${originalFontSize};
+      width: 7.5in; /* 8.5in letter width - 1.0in margins */
+      box-sizing: border-box;
+      margin: 0 auto;
     }
     /* Force bullet points and indentation on the resume content */
     ul {
@@ -617,7 +616,35 @@ function handlePrintPdf() {
   </div>
   <script>
     window.onload = function() {
+      const element = document.getElementById('print-content');
+      const targetPages = ${targetPageCount || 1};
+      const maxPageHeight = targetPages * 979; // 10.2 inches printable height at 96 DPI
+      
+      let low = 0.65;
+      let high = 1.30;
+      let bestScale = low;
+      
+      // Perform binary search to optimize printable text size for page budget
+      for (let i = 0; i < 8; i++) {
+        const mid = (low + high) / 2;
+        element.style.fontSize = mid + 'em';
+        void element.offsetHeight; // Force layout recalculation
+        
+        if (element.scrollHeight > maxPageHeight) {
+          high = mid; // Too large, shrink
+        } else {
+          bestScale = mid; // Fits, try growing to fill page
+          low = mid;
+        }
+      }
+      
+      element.style.fontSize = bestScale + 'em';
+      void element.offsetHeight;
+      
+      // Trigger native print dialog
       window.print();
+      
+      // Close window shortly after print dialog finishes
       setTimeout(function() {
         window.close();
       }, 500);
@@ -629,169 +656,11 @@ function handlePrintPdf() {
   printWindow.document.close();
 }
 
-// Shared PDF generation and download trigger
-function handleDownloadPdf() {
-  const element = document.getElementById('resume-preview-content');
-  if (!element || !resumePreviewContent.innerHTML.trim() || resumePreviewContent.innerHTML.includes('No rewritten résumé generated')) {
-    alert("No rewritten résumé content available to download.");
-    return;
-  }
-  
-  // Sync any inline edits to link text back into the href attributes
-  syncLinksAndGetHtml();
-  
-  // Programmatically strip bottom margins/padding of the outer container and its last child to prevent trailing blank pages
-  const outerDiv = element.querySelector('div[contenteditable]');
-  if (outerDiv) {
-    outerDiv.style.setProperty('margin-bottom', '0px', 'important');
-    outerDiv.style.setProperty('padding-bottom', '0px', 'important');
-    
-    const lastChild = outerDiv.lastElementChild;
-    if (lastChild) {
-      lastChild.style.setProperty('margin-bottom', '0px', 'important');
-      lastChild.style.setProperty('padding-bottom', '0px', 'important');
-      
-      const subLastChild = lastChild.lastElementChild;
-      if (subLastChild) {
-        subLastChild.style.setProperty('margin-bottom', '0px', 'important');
-        subLastChild.style.setProperty('padding-bottom', '0px', 'important');
-      }
-    }
-  }
-  
-  const previewContainer = document.getElementById('resume-preview-container');
-  const scrollParent = previewContainer ? previewContainer.parentElement : null;
-  
-  // Save original styles/scroll position
-  const originalPadding = previewContainer ? previewContainer.style.padding : '';
-  const originalMinHeight = previewContainer ? previewContainer.style.minHeight : '';
-  const originalScrollTop = scrollParent ? scrollParent.scrollTop : 0;
-  const originalFontSize = element.style.fontSize || '1.0em';
-  
-  // Temporarily clear styling constraints and scroll to top to prevent html2canvas offsets
-  if (previewContainer) {
-    previewContainer.style.padding = '0px';
-    previewContainer.style.minHeight = '0px';
-  }
-  if (scrollParent) {
-    scrollParent.scrollTop = 0;
-  }
-  
-  const originalName = selectedFile ? selectedFile.name.replace('.pdf', '') : 'résumé';
-  const opt = {
-    margin:       [0.12, 0.15, 0.12, 0.15],
-    filename:     `${originalName}_optimized.pdf`,
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { 
-      scale: 2, 
-      useCORS: true, 
-      letterRendering: true,
-      scrollX: 0,
-      scrollY: 0
-    },
-    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-    pagebreak:    { mode: ['css', 'legacy'] }
-  };
-  
-  const buttonsToDisable = [];
-  if (downloadPdfBtn) buttonsToDisable.push(downloadPdfBtn);
-  if (downloadPdfTopBtn) buttonsToDisable.push(downloadPdfTopBtn);
-  
-  const oldTexts = buttonsToDisable.map(btn => btn.innerHTML);
-  
-  function enableButtons() {
-    buttonsToDisable.forEach((btn, idx) => {
-      btn.disabled = false;
-      btn.innerHTML = oldTexts[idx];
-    });
-  }
-  
-  function restoreStyles() {
-    if (previewContainer) {
-      previewContainer.style.padding = originalPadding;
-      previewContainer.style.minHeight = originalMinHeight;
-    }
-    if (scrollParent) {
-      scrollParent.scrollTop = originalScrollTop;
-    }
-    element.style.fontSize = originalFontSize;
-  }
-
-  buttonsToDisable.forEach(btn => {
-    btn.disabled = true;
-    btn.innerHTML = "<span>Generating PDF...</span>";
-  });
-  
-  // Binary search page fitting logic to get as close as possible to filling the target page count
-  const targetPages = targetPageCount || 1;
-  const originalScale = parseFloat(originalFontSize) || 1.0;
-  
-  console.log("Commencing binary search to optimize PDF page fit...");
-  let low = 0.65;
-  let high = Math.max(1.20, originalScale);
-  let bestFitScale = low; // Fallback to minimum
-  
-  function runBinarySearchPass(attempt = 1) {
-    if (attempt > 8 || (high - low) < 0.003) {
-      console.log(`Binary search completed in ${attempt - 1} passes. Optimal scale: ${bestFitScale.toFixed(4)}em`);
-      element.style.fontSize = `${bestFitScale}em`;
-      void element.offsetHeight; // Force layout reflow
-      
-      setTimeout(() => {
-        html2pdf().set(opt).from(element).save().then(() => {
-          restoreStyles();
-          enableButtons();
-        }).catch(err => {
-          console.error("PDF save failed:", err);
-          alert("Failed to generate PDF. Please try again.");
-          restoreStyles();
-          enableButtons();
-        });
-      }, 50);
-      return;
-    }
-    
-    const mid = (low + high) / 2;
-    console.log(`Binary search pass ${attempt}: testing scale at ${mid.toFixed(4)}em (low: ${low.toFixed(4)}, high: ${high.toFixed(4)})`);
-    element.style.fontSize = `${mid}em`;
-    void element.offsetHeight; // Force layout reflow
-    
-    setTimeout(() => {
-      html2pdf().set(opt).from(element).toPdf().get('pdf').then((pdf) => {
-        const actualPages = pdf.internal.getNumberOfPages();
-        console.log(`Pass ${attempt} result: PDF has ${actualPages} pages (Target: ${targetPages})`);
-        
-        if (actualPages > targetPages) {
-          // Too large, search lower half
-          high = mid;
-          runBinarySearchPass(attempt + 1);
-        } else {
-          // Fits, record and search upper half to maximize page fill
-          bestFitScale = mid;
-          low = mid;
-          runBinarySearchPass(attempt + 1);
-        }
-      }).catch(err => {
-        console.error(`PDF generation pass ${attempt} failed:`, err);
-        alert("Failed to generate PDF. Please try again.");
-        restoreStyles();
-        enableButtons();
-      });
-    }, 50);
-  }
-  
-  // Start the binary search loop
-  runBinarySearchPass(1);
-}
-
 if (downloadPdfBtn) {
-  downloadPdfBtn.addEventListener('click', handleDownloadPdf);
+  downloadPdfBtn.addEventListener('click', handlePrintPdf);
 }
 if (downloadPdfTopBtn) {
-  downloadPdfTopBtn.addEventListener('click', handleDownloadPdf);
-}
-if (printPdfBtn) {
-  printPdfBtn.addEventListener('click', handlePrintPdf);
+  downloadPdfTopBtn.addEventListener('click', handlePrintPdf);
 }
 
 // Fetch and display stats counter
