@@ -52,7 +52,7 @@ At the very end of your response, output the exact delimiter on a new line:
 === REWRITTEN RESUME ===
 Followed by the fully rewritten and optimized résumé based on your critique, formatted as a single, self-contained HTML block.
 Guidelines for the rewritten résumé HTML:
-1. Wrap everything inside a single container div (like <div style="font-family: Arial, sans-serif; color: #000000; line-height: 1.35; padding: 0px 10px; box-sizing: border-box;">).
+1. Wrap everything inside a single container div with contenteditable="true" enabled (like <div contenteditable="true" style="font-family: Arial, sans-serif; color: #000000; line-height: 1.35; padding: 0px 10px; box-sizing: border-box;">) so that the user can edit the downloaded HTML file directly in their browser.
 2. STRICT REQUIREMENT: THE ENTIRE REWRITTEN RÉSUMÉ MUST FIT ON EXACTLY ${pageLabel}. To guarantee this:
    - Use relative font sizes (e.g. style="font-size: 1.8em;" for candidate name; style="font-size: 1.1em;" for section headings; style="font-size: 0.95em;" for body text and bullets) rather than absolute pixel font-sizes. This allows the wrapper to dynamically scale the typography to fit the page target.
    - Use relative em units for all vertical margins and paddings (e.g. margin-top: 0.6em, margin-bottom: 0.3em) rather than absolute pixels to ensure proportional layout scaling.
