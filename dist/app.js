@@ -38,6 +38,7 @@ const resumePreviewContent = document.getElementById('resume-preview-content');
 const downloadPdfBtn = document.getElementById('download-pdf-btn');
 const downloadPdfTopBtn = document.getElementById('download-pdf-top-btn');
 const downloadHtmlBtn = document.getElementById('download-html-btn');
+const printPdfBtn = document.getElementById('print-pdf-btn');
 const jobDescInput = document.getElementById('job-desc-input');
 const charCount = document.getElementById('char-count');
 const charLimitWarning = document.getElementById('char-limit-warning');
@@ -551,6 +552,83 @@ if (tabCritiqueBtn && tabResumeBtn && critiquePanel && resumePanel) {
   });
 }
 
+// Open print window to generate high-quality searchable vector PDF
+function handlePrintPdf() {
+  const element = document.getElementById('resume-preview-content');
+  if (!element || !resumePreviewContent.innerHTML.trim() || resumePreviewContent.innerHTML.includes('No rewritten résumé generated')) {
+    alert("No rewritten résumé content available to print.");
+    return;
+  }
+
+  // Sync edits first
+  const editedHtml = syncLinksAndGetHtml();
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert("Please allow popups to print the résumé.");
+    return;
+  }
+
+  const originalFontSize = element.style.fontSize || '1.0em';
+
+  printWindow.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Print Résumé</title>
+  <style>
+    @page {
+      size: letter;
+      margin: 0.4in 0.5in;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #ffffff;
+      color: #000000;
+      font-family: Arial, sans-serif;
+    }
+    #print-content {
+      font-size: ${originalFontSize};
+    }
+    /* Force bullet points and indentation on the resume content */
+    ul {
+      list-style-type: disc !important;
+      margin-left: 1.5rem !important;
+      padding-left: 0.5rem !important;
+      margin-top: 0.2em !important;
+      margin-bottom: 0.2em !important;
+    }
+    li {
+      display: list-item !important;
+      list-style-type: disc !important;
+      margin-bottom: 0.25em !important;
+    }
+    a {
+      color: #004b93 !important;
+      text-decoration: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="print-content">
+    ${editedHtml}
+  </div>
+  <script>
+    window.onload = function() {
+      window.print();
+      setTimeout(function() {
+        window.close();
+      }, 500);
+    };
+  <\/script>
+</body>
+</html>
+  `);
+  printWindow.document.close();
+}
+
 // Shared PDF generation and download trigger
 function handleDownloadPdf() {
   const element = document.getElementById('resume-preview-content');
@@ -711,6 +789,9 @@ if (downloadPdfBtn) {
 }
 if (downloadPdfTopBtn) {
   downloadPdfTopBtn.addEventListener('click', handleDownloadPdf);
+}
+if (printPdfBtn) {
+  printPdfBtn.addEventListener('click', handlePrintPdf);
 }
 
 // Fetch and display stats counter
