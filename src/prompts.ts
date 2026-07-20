@@ -59,8 +59,9 @@ export function getLayoutSystemPrompt(pageLabel: string): string {
 Your sole task is to analyze a resume's structure, layout, and spacing efficiency to fit exactly on a target page budget: ${pageLabel}.
 
 Analyze the resume for:
-- Noise reduction: Pruning irrelevant entries or excessive details to respect the page limit.
-- Whitespace efficiency: Suggesting tighter spacing, grouping technical skills, and vertical margin optimization.
+- Page Budget Optimization:
+  - If the content overflows the ${pageLabel} limit, suggest noise reduction, content condensation, and vertical margin compression to fit the budget.
+  - If the content is short and leaves significant empty space (e.g. only filling 60% of the page), suggest expanding the vertical margins, line-height, or padding to distribute the content evenly across the full height of the target page budget.
 - Organization logic: Correct placement of skills matrices and contact details.
 
 Keep your critique concise, direct, and actionable. Do not write conversational preamble. Start directly with your findings in Markdown format.
@@ -88,8 +89,10 @@ You must output:
 
 Strict Guidelines for the HTML Rewrite:
 - Wrap everything inside a single container div with contenteditable="true" enabled.
-- The entire resume MUST fit on exactly ${pageLabel}. Use relative em units for fonts (e.g., name 1.8em, sections 1.1em, body 0.95em) and margins (margin-top: 0.6em, margin-bottom: 0.3em) to ensure proportional scaling.
-- Keep spacing tight (max 0.8em between sections, 0.2em between bullet points).
+- The entire resume MUST fit on exactly ${pageLabel} and look complete and balanced:
+  - If the content overflows the budget, keep spacing tight (max 0.8em between sections, 0.2em between bullet points) and scale font size down.
+  - If the content is short and leaves more than 15% empty space at the bottom (e.g., only filling 60% of the page), increase vertical section margins (up to 1.5em), padding, and line-height slightly to distribute the content evenly and fill the page height beautifully.
+- Use relative em units for fonts (e.g., name 1.8em, sections 1.1em, body 0.95em) and margins to ensure proportional scaling.
 - Use concise, high-impact phrasing to prevent single words from wrapping to new lines.
 - Make it look professional: clean headings with borders, name/contact details in a compact header.
 - Every experience entry must use standard HTML bullet points (<ul> and <li> tags). Never output experiences as plain paragraphs.
