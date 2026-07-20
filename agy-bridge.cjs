@@ -7,7 +7,7 @@ const path = require('path');
 const PORT = process.env.PORT || 8000;
 const HOST = '127.0.0.1';
 const SECRET_TOKEN = process.env.API_SECRET || '';
-const AGY_PATH = '/home/superjeffreyc_cs/.local/bin/agy';
+const AGY_PATH = '/var/lib/agy-bridge/bin/agy';
 
 const server = http.createServer((req, res) => {
   // CORS headers
@@ -73,7 +73,7 @@ const server = http.createServer((req, res) => {
           const secureConfigDir = path.join(secureHome, '.gemini', 'antigravity-cli');
           fs.mkdirSync(secureConfigDir, { recursive: true });
 
-          const realConfigDir = '/home/superjeffreyc_cs/.gemini/antigravity-cli';
+          const realConfigDir = '/var/lib/agy-bridge/.gemini/antigravity-cli';
           
           // Copy or symlink credentials and installation ID
           try {
