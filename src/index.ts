@@ -246,14 +246,20 @@ export default {
         );
       }
 
-      if (!resumeMarkdown || resumeMarkdown.trim().length === 0) {
+      // Detect if the extracted text is empty, too short, or contains native parser indicators of a scanned/empty document
+      const isParserWarning = 
+        resumeMarkdown.toLowerCase().includes("empty of text content") || 
+        resumeMarkdown.toLowerCase().includes("no text found") ||
+        resumeMarkdown.toLowerCase().includes("keyword gap");
+
+      if (!resumeMarkdown || resumeMarkdown.trim().length < 150 || isParserWarning) {
         // Clear lock on failure
         if (clientIP !== "anonymous") {
           await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
         }
         
         let errorMsg = "Failed to extract legible text from the uploaded file.";
-        if (isPdf) {
+        if (isPdf || isParserWarning) {
           errorMsg = "The uploaded PDF appears to be a scanned image with no readable text layer. Please upload a standard PDF with selectable text, or upload a PNG/JPEG image of your résumé directly.";
         }
         
