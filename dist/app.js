@@ -550,6 +550,25 @@ function handleDownloadPdf() {
   // Sync any inline edits to link text back into the href attributes
   syncLinksAndGetHtml();
   
+  // Programmatically strip bottom margins/padding of the outer container and its last child to prevent trailing blank pages
+  const outerDiv = element.querySelector('div[contenteditable]');
+  if (outerDiv) {
+    outerDiv.style.setProperty('margin-bottom', '0px', 'important');
+    outerDiv.style.setProperty('padding-bottom', '0px', 'important');
+    
+    const lastChild = outerDiv.lastElementChild;
+    if (lastChild) {
+      lastChild.style.setProperty('margin-bottom', '0px', 'important');
+      lastChild.style.setProperty('padding-bottom', '0px', 'important');
+      
+      const subLastChild = lastChild.lastElementChild;
+      if (subLastChild) {
+        subLastChild.style.setProperty('margin-bottom', '0px', 'important');
+        subLastChild.style.setProperty('padding-bottom', '0px', 'important');
+      }
+    }
+  }
+  
   const previewContainer = document.getElementById('resume-preview-container');
   const scrollParent = previewContainer ? previewContainer.parentElement : null;
   
@@ -580,7 +599,8 @@ function handleDownloadPdf() {
       scrollX: 0,
       scrollY: 0
     },
-    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
+    pagebreak:    { mode: ['css', 'legacy'] }
   };
   
   const buttonsToDisable = [];
