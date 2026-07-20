@@ -119,6 +119,18 @@
     .pulse-glow-effect {
       animation: pulse-glow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
+
+    /* Force bullet points and indentation on the resume preview content (overriding Tailwind preflight) */
+    #resume-preview-content ul {
+      list-style-type: disc !important;
+      margin-left: 1.5rem !important;
+      padding-left: 0.5rem !important;
+    }
+    #resume-preview-content li {
+      display: list-item !important;
+      list-style-type: disc !important;
+      margin-bottom: 0.25em !important;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col relative overflow-x-hidden antialiased">
