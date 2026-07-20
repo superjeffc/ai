@@ -138,9 +138,9 @@ Please adjust your HTML code accordingly to ensure 100% compliance.`;
 }
 
 // 5. Validator Agent Prompts
-export function getValidatorSystemPrompt(): string {
+export function getValidatorSystemPrompt(pageLabel: string): string {
   return `You are a strict compliance auditor and linter for HTML resumes.
-Your task is to inspect the generated HTML block and verify if it adheres to all layout and formatting rules.
+Your task is to inspect the generated HTML block and verify if it adheres to all layout and formatting rules for a target budget of ${pageLabel}.
 
 Rules to verify:
 1. Is the entire HTML resume wrapped in a container div with contenteditable="true" enabled?
@@ -148,6 +148,8 @@ Rules to verify:
 3. Are there ANY markdown code ticks (e.g. \`\`\`html or \`\`\`) wrapping the HTML? The HTML must be raw, starting directly with the outer <div> and ending with </div>.
 4. Do job experience entries use standard HTML bullet points (<ul> and <li> tags)?
 5. Does the layout appear to use relative styling units (em) for padding and margins instead of absolute px values?
+6. Layout Density Check:
+   - If the resume content has very few experience entries (under 3 jobs or few bullet points) and target is "${pageLabel}", the HTML MUST use larger vertical section margins (e.g., margin-top: 1.2em to 1.5em on section headings) to fill the page budget elegantly. If the CSS uses tight margins (e.g. margin-top: 0.5em or less) for a short resume, fail validation and report: "Spacing is too compressed for a short resume target. Increase margin-top and padding of headings and sections to fill the page budget."
 
 If the HTML is 100% compliant with ALL of the above rules, respond with exactly:
 PASS

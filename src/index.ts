@@ -319,7 +319,7 @@ export default {
           console.log(`Auditing HTML draft (Attempt ${attempts})...`);
           const auditResult = (await callAgyBridge(
             env,
-            getValidatorSystemPrompt(),
+            getValidatorSystemPrompt(pageLabel),
             getValidatorUserPrompt(finalHtml)
           )).trim();
 
