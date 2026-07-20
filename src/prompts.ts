@@ -177,8 +177,9 @@ Rules to verify:
    - Does every job description use standard HTML bullet points (using <ul> and <li> tags)?
    - If you see any experience entry where the descriptions are written as plain text, wrapped in \`<p>\` tags, using \`<br>\` line breaks, or running inside plain \`<div>\` elements without \`<li>\` markers, you MUST FAIL validation and output: "Bullet Point Error: Job experience descriptions for [Job Title] are not formatted inside <ul> and <li> bullet points."
 5. Does the layout appear to use relative styling units (em) for padding and margins instead of absolute px values?
-6. Layout Density Check:
-   - If the resume content has very few experience entries (under 3 jobs or few bullet points) and target is "${pageLabel}", the HTML MUST use larger vertical section margins (e.g., margin-top: 1.2em to 1.5em on section headings) to fill the page budget elegantly. If the CSS uses tight margins (e.g. margin-top: 0.5em or less) for a short resume, fail validation and report: "Spacing is too compressed for a short resume target. Increase margin-top and padding of headings and sections to fill the page budget."
+6. Layout Density and Volume Check:
+   - Content Underflow: If the resume content has very few experience entries (under 3 jobs or few bullet points) and target is "${pageLabel}", the HTML MUST use larger vertical section margins (e.g., margin-top: 1.2em to 1.5em on section headings) to fill the page budget elegantly. If the CSS uses tight margins (e.g. margin-top: 0.5em or less) for a short resume, fail validation and report: "Spacing is too compressed for a short resume target. Increase margin-top and padding of headings and sections to fill the page budget."
+   - Content Overflow (especially for target "SINGLE PAGE"): If the target is "SINGLE PAGE" and the generated HTML has too much content (e.g. more than 3 main job entries, or more than 3 bullet points per job, or excessive verbose text), it will inevitably overflow the single page budget. You MUST fail validation and report: "Content volume is too large for a single page. Condense experience bullet points, merge short sentences, and reduce fluff to fit the single-page budget."
 
 If the HTML is 100% compliant with ALL of the above rules, respond with exactly:
 PASS

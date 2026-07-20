@@ -381,10 +381,10 @@ export default {
       // Fallback: If binary parsing resulted in 1 but the text volume is extremely large, adjust target
       if (targetPageCount === 1) {
         const charCount = resumeMarkdown.length;
-        if (charCount > 4200) {
+        if (charCount > 5800) {
           targetPageCount = 2;
         }
-        if (charCount > 8500) {
+        if (charCount > 11000) {
           targetPageCount = 3;
         }
       }
