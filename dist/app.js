@@ -438,9 +438,39 @@ function fitToPageTarget(element, targetPages) {
 
 
 
+// Sync link text changes back to their href attributes before downloading
+function syncLinksAndGetHtml() {
+  const element = document.getElementById('resume-preview-content');
+  if (!element) return "";
+  
+  const links = element.querySelectorAll('a');
+  links.forEach(link => {
+    const text = link.textContent.trim();
+    if (text) {
+      if (text.startsWith('http://') || text.startsWith('https://')) {
+        link.setAttribute('href', text);
+      } else if (text.includes('@') && !text.includes('/')) {
+        const email = text.replace(/^mailto:/i, '').trim();
+        link.setAttribute('href', `mailto:${email}`);
+      } else if (text.startsWith('www.')) {
+        link.setAttribute('href', `https://${text}`);
+      } else if (text.includes('github.com') || text.includes('linkedin.com')) {
+        if (!text.startsWith('http')) {
+          link.setAttribute('href', `https://${text}`);
+        } else {
+          link.setAttribute('href', text);
+        }
+      }
+    }
+  });
+
+  return element.innerHTML;
+}
+
 // Download HTML report
 function handleDownloadHtml() {
-  if (!currentResumeHtml || currentResumeHtml.includes('No rewritten résumé generated')) {
+  const editedHtml = syncLinksAndGetHtml();
+  if (!editedHtml || editedHtml.includes('No rewritten résumé generated')) {
     alert("No rewritten résumé content available to download.");
     return;
   }
@@ -459,9 +489,9 @@ function handleDownloadHtml() {
     }
   </style>
 </head>
-<body>
-  ${currentResumeHtml}
-</body>
+  <body>
+    ${editedHtml}
+  </body>
 </html>`;
 
   const blob = new Blob([standaloneHtml], { type: 'text/html;charset=utf-8;' });
@@ -516,6 +546,9 @@ function handleDownloadPdf() {
     alert("No rewritten résumé content available to download.");
     return;
   }
+  
+  // Sync any inline edits to link text back into the href attributes
+  syncLinksAndGetHtml();
   
   const previewContainer = document.getElementById('resume-preview-container');
   const scrollParent = previewContainer ? previewContainer.parentElement : null;

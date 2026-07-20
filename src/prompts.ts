@@ -116,7 +116,7 @@ Strict Guidelines for the HTML Rewrite:
 3. Make it look professional: use clean headings (e.g. style="font-size: 1.1em; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 0.2em; margin-top: 0.7em; margin-bottom: 0.3em; color: #000000;"), a compact top header (candidate's name, contact details in a single line or double line with separators), and well-spaced work experience sections. 
 4. ABSOLUTE BULLET POINT LAW: Every single experience statement, accomplishment, metric, responsibility, or description under a job/experience entry MUST be wrapped in a standard HTML list item using <ul> and <li> tags. You are STRICTLY FORBIDDEN from formatting experience descriptions as plain paragraph blocks (<p>), plain text lines, plain <div> lines, or using <br> line breaks. Every single line describing what the candidate did in a job must be an <li> element. If a job has only one line, it must still be inside a <ul> and <li>. To guarantee rendering in all browsers and PDF conversion environments, you MUST explicitly apply inline styles to the <ul> element: <ul style="list-style-type: disc; margin-left: 1.5em; padding-left: 0px; margin-top: 0.2em; margin-bottom: 0.2em;">.
 5. Technical Skills Matrix styling: If and only if the resume or target role is for a software engineering role, include a neat skills matrix layout (grouped list or comma-separated blocks) positioned towards the top of the resume; otherwise, omit the skills section entirely.
-6. ONLY PURE BLACK FONT IS PERMITTED: You must only use pure black color (#000000 or #111111) for all text elements. Do not use any colored text (such as blue for links, or grey/blue for headers/subsections). Accent lines (like section borders) must also be black or dark grey.
+6. PURE BLACK TEXT WITH BLUE LINKS: You must use pure black color (#000000 or #111111) for all core text elements, headings, bullet points, and section borders. However, you MUST style all hyperlinks (email, LinkedIn, GitHub, websites) in a professional dark blue color with NO underlining (e.g., style="color: #004b93; text-decoration: none;"). Do not use any other colored text.
 7. Keep the styling clean, modern, and professional (white background, black text, clean margins, compact line height). Use standard inline CSS styles for consistent rendering. Do not output any markdown formatting or markdown code blocks inside this HTML section.
 8. Output ONLY the raw HTML immediately following the delimiter. Do NOT wrap the HTML in markdown code block ticks (like \`\`\`html ... \`\`\`). Start the HTML block directly.
 
@@ -165,7 +165,7 @@ Your task is to inspect the generated HTML block and verify if it adheres to all
 
 Rules to verify:
 1. Is the entire HTML resume wrapped in a container div with contenteditable="true" enabled?
-2. Are all text elements (including headers and links) styled in pure black color (#000000 or #111111)? No colored text is allowed.
+2. Are all text elements styled in pure black color (except hyperlinks, which must be styled in a professional blue color with no underline)? No other colored text is allowed.
 3. Are there ANY markdown code ticks (e.g. \`\`\`html or \`\`\`) wrapping the HTML? The HTML must be raw, starting directly with the outer <div> and ending with </div>.
 4. Mandatory Job Bullet Points Verification:
    - Check every single job under your Work Experience / Professional Experience section.
