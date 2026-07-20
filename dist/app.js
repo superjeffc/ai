@@ -579,11 +579,13 @@ function handlePrintPdf() {
 <head>
   <meta charset="UTF-8">
   <title>Print Résumé</title>
-  <style>
+  <style id="dynamic-page-style">
     @page {
       size: letter;
-      margin: 0.3in 0.4in;
+      margin: 0.4in 0.5in;
     }
+  </style>
+  <style>
     body {
       margin: 0;
       padding: 0;
@@ -592,7 +594,6 @@ function handlePrintPdf() {
       font-family: Arial, sans-serif;
     }
     #print-content {
-      width: 7.7in; /* 8.5in letter width - 0.8in margins */
       box-sizing: border-box;
       margin: 0 auto;
     }
@@ -622,6 +623,7 @@ function handlePrintPdf() {
   <script>
     window.onload = function() {
       const element = document.getElementById('print-content');
+      const pageStyle = document.getElementById('dynamic-page-style');
       const targetPages = ${targetPageCount || 1};
       const maxPageHeight = targetPages * 979; // 10.2 inches printable height at 96 DPI
       
@@ -629,10 +631,21 @@ function handlePrintPdf() {
       let high = 1.30;
       let bestScale = low;
       
-      // Perform binary search to optimize printable text size for page budget
+      // Perform binary search to optimize printable text size and margins for page budget
       for (let i = 0; i < 8; i++) {
         const mid = (low + high) / 2;
+        
+        // Compute dynamic margins: narrower margins for small scales, wider for large scales
+        const t = Math.max(0, Math.min(1, (mid - 0.65) / (1.30 - 0.65)));
+        const lr = 0.35 + t * (0.65 - 0.35); // 0.35in (cramped) to 0.65in (spaced)
+        const tb = 0.30 + t * (0.50 - 0.30); // 0.30in to 0.50in
+        const w = 8.5 - (2 * lr);
+        
+        // Apply page margin and content width
+        pageStyle.innerHTML = '@page { size: letter; margin: ' + tb + 'in ' + lr + 'in; }';
+        element.style.width = w + 'in';
         element.style.fontSize = mid + 'em';
+        
         void element.offsetHeight; // Force layout recalculation
         
         if (element.scrollHeight > maxPageHeight) {
@@ -643,7 +656,16 @@ function handlePrintPdf() {
         }
       }
       
+      // Re-apply the best scale and margins
+      const tBest = Math.max(0, Math.min(1, (bestScale - 0.65) / (1.30 - 0.65)));
+      const lrBest = 0.35 + tBest * (0.65 - 0.35);
+      const tbBest = 0.30 + tBest * (0.50 - 0.30);
+      const wBest = 8.5 - (2 * lrBest);
+      
+      pageStyle.innerHTML = '@page { size: letter; margin: ' + tbBest + 'in ' + lrBest + 'in; }';
+      element.style.width = wBest + 'in';
       element.style.fontSize = bestScale + 'em';
+      
       void element.offsetHeight;
       
       // Trigger native print dialog
