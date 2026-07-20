@@ -582,7 +582,7 @@ function handlePrintPdf() {
   <style>
     @page {
       size: letter;
-      margin: 0.4in 0.5in;
+      margin: 0.3in 0.4in;
     }
     body {
       margin: 0;
@@ -592,7 +592,7 @@ function handlePrintPdf() {
       font-family: Arial, sans-serif;
     }
     #print-content {
-      width: 7.5in; /* 8.5in letter width - 1.0in margins */
+      width: 7.7in; /* 8.5in letter width - 0.8in margins */
       box-sizing: border-box;
       margin: 0 auto;
     }
