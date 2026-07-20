@@ -39,6 +39,61 @@ async function callAgyBridge(env: Env, systemPrompt: string, userPrompt: string)
   return await bridgeResponse.text();
 }
 
+// Helper to find index of a byte array inside another byte array
+function indexOf(arr: Uint8Array, subarr: Uint8Array, start = 0): number {
+  const limit = arr.length - subarr.length;
+  for (let i = start; i <= limit; i++) {
+    let match = true;
+    for (let j = 0; j < subarr.length; j++) {
+      if (arr[i + j] !== subarr[j]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) return i;
+  }
+  return -1;
+}
+
+// Extract raw JPEG bytes from PDF /DCTDecode streams for scanned PDF OCR fallback
+function extractJpegsFromPdf(pdfBuffer: ArrayBuffer): Uint8Array[] {
+  const view = new Uint8Array(pdfBuffer);
+  const jpegs: Uint8Array[] = [];
+  
+  const searchBytes = new TextEncoder().encode("/DCTDecode");
+  const streamBytes = new TextEncoder().encode("stream");
+  const endstreamBytes = new TextEncoder().encode("endstream");
+  
+  let pos = 0;
+  while (true) {
+    const dctIndex = indexOf(view, searchBytes, pos);
+    if (dctIndex === -1) break;
+    
+    const streamIndex = indexOf(view, streamBytes, dctIndex);
+    if (streamIndex === -1 || (streamIndex - dctIndex) > 1000) {
+      pos = dctIndex + searchBytes.length;
+      continue;
+    }
+    
+    let streamStart = streamIndex + 6;
+    if (view[streamStart] === 13) streamStart++; // \r
+    if (view[streamStart] === 10) streamStart++; // \n
+    
+    const endstreamIndex = indexOf(view, endstreamBytes, streamStart);
+    if (endstreamIndex === -1) break;
+    
+    const jpegBytes = view.slice(streamStart, endstreamIndex);
+    
+    if (jpegBytes[0] === 0xFF && jpegBytes[1] === 0xD8) {
+      jpegs.push(jpegBytes);
+    }
+    
+    pos = endstreamIndex + 9;
+  }
+  
+  return jpegs;
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // Define CORS headers
@@ -183,9 +238,10 @@ export default {
       // 4. Convert to an ArrayBuffer and then create a clean Blob with explicit type
       let fileBlob: Blob;
       let targetPageCount = 1;
+      let pdfBuffer: ArrayBuffer | null = null;
 
       if (isPdf) {
-        const pdfBuffer = await fileEntry.arrayBuffer();
+        pdfBuffer = await fileEntry.arrayBuffer();
         fileBlob = new Blob([pdfBuffer], { type: 'application/pdf' });
 
         // Extract page count directly from PDF binary metadata structure
@@ -261,31 +317,65 @@ export default {
         "skills", "technologies", "tools", "languages", 
         "contact", "email", "phone", "address", "linkedin", "github"
       ];
-      const hasResumeKeywords = resumeKeywords.some(keyword => 
+      let hasResumeKeywords = resumeKeywords.some(keyword => 
         resumeMarkdown.toLowerCase().includes(keyword)
       );
 
       if (!resumeMarkdown || resumeMarkdown.trim().length < 150 || isParserWarning || !hasResumeKeywords) {
-        console.warn(`Validation failed. Legible text length: ${resumeMarkdown ? resumeMarkdown.trim().length : 0} chars. Keywords match: ${hasResumeKeywords}. Warning: ${isParserWarning}.`);
-        console.warn(`Extracted preview: "${resumeMarkdown ? resumeMarkdown.substring(0, 150) : ""}"`);
-        
-        // Clear lock on failure
-        if (clientIP !== "anonymous") {
-          await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
-        }
-        
-        let errorMsg = "Failed to extract legible text from the uploaded file.";
-        if (isPdf || isParserWarning || !hasResumeKeywords) {
-          errorMsg = "The uploaded PDF appears to be a scanned image with no readable text layer. Please upload a standard PDF with selectable text, or upload a PNG/JPEG image of your résumé directly.";
-        }
-        
-        return new Response(
-          JSON.stringify({ error: errorMsg }),
-          {
-            status: 422,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+        let ocrSuccess = false;
+        if (isPdf && pdfBuffer) {
+          console.log("PDF text extraction failed or returned blank. Attempting scanned PDF JPEG extraction fallback...");
+          try {
+            const jpegs = extractJpegsFromPdf(pdfBuffer);
+            if (jpegs.length > 0) {
+              console.log(`Found ${jpegs.length} scanned JPEG(s) inside PDF. Running Workers AI OCR on the first page...`);
+              const imgBlob = new Blob([jpegs[0]], { type: 'image/jpeg' });
+              const ocrResult = await env.AI.toMarkdown([
+                {
+                  name: 'scanned_page.jpg',
+                  blob: imgBlob
+                }
+              ]);
+              const ocrText = ocrResult?.[0]?.data || "";
+              
+              const hasOcrKeywords = resumeKeywords.some(keyword => 
+                ocrText.toLowerCase().includes(keyword)
+              );
+              
+              if (ocrText && ocrText.trim().length >= 150 && hasOcrKeywords) {
+                resumeMarkdown = ocrText;
+                hasResumeKeywords = true;
+                ocrSuccess = true;
+                console.log("Scanned PDF OCR fallback succeeded!");
+              }
+            }
+          } catch (ocrErr) {
+            console.warn("Scanned PDF OCR fallback failed with error:", ocrErr);
           }
-        );
+        }
+
+        if (!ocrSuccess) {
+          console.warn(`Validation failed. Legible text length: ${resumeMarkdown ? resumeMarkdown.trim().length : 0} chars. Keywords match: ${hasResumeKeywords}. Warning: ${isParserWarning}.`);
+          console.warn(`Extracted preview: "${resumeMarkdown ? resumeMarkdown.substring(0, 150) : ""}"`);
+          
+          // Clear lock on failure
+          if (clientIP !== "anonymous") {
+            await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
+          }
+          
+          let errorMsg = "Failed to extract legible text from the uploaded file.";
+          if (isPdf || isParserWarning || !hasResumeKeywords) {
+            errorMsg = "The uploaded PDF appears to be a scanned image with no readable text layer. Please upload a standard PDF with selectable text, or upload a PNG/JPEG image of your résumé directly.";
+          }
+          
+          return new Response(
+            JSON.stringify({ error: errorMsg }),
+            {
+              status: 422,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
       }
 
       // Fallback: If binary parsing resulted in 1 but the text volume is extremely large, adjust target
