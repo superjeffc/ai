@@ -160,15 +160,19 @@ export default {
         );
       }
 
-      // Check if file is PDF (by mime type or extension)
-      const isPdf = fileEntry.type === "application/pdf" || fileEntry.name.endsWith(".pdf");
-      if (!isPdf) {
+      // Check if file is PDF or image (by mime type or extension)
+      const fileType = fileEntry.type || "";
+      const fileName = (fileEntry.name || "").toLowerCase();
+      const isPdf = fileType === "application/pdf" || fileName.endsWith(".pdf");
+      const isImage = fileType.startsWith("image/") || fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg");
+
+      if (!isPdf && !isImage) {
         // Clear lock on validation failure
         if (clientIP !== "anonymous") {
           await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
         }
         return new Response(
-          JSON.stringify({ error: "Only PDF files are supported." }),
+          JSON.stringify({ error: "Unsupported file format. Please upload a PDF or a PNG/JPEG image." }),
           {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -177,35 +181,44 @@ export default {
       }
 
       // 4. Convert to an ArrayBuffer and then create a clean Blob with explicit type
-      const pdfBuffer = await fileEntry.arrayBuffer();
-      const pdfBlob = new Blob([pdfBuffer], { type: 'application/pdf' });
-
-      // Extract page count directly from PDF binary metadata structure
+      let fileBlob: Blob;
       let targetPageCount = 1;
-      try {
-        const decoder = new TextDecoder('ascii');
-        const view = new Uint8Array(pdfBuffer);
-        const text = decoder.decode(view);
-        
-        const countMatches = [...text.matchAll(/\/Count\s+(\d+)/g)];
-        if (countMatches.length > 0) {
-          let maxPages = 1;
-          for (const match of countMatches) {
-            const count = parseInt(match[1], 10);
-            if (count > maxPages && count < 20) {
-              maxPages = count;
+
+      if (isPdf) {
+        const pdfBuffer = await fileEntry.arrayBuffer();
+        fileBlob = new Blob([pdfBuffer], { type: 'application/pdf' });
+
+        // Extract page count directly from PDF binary metadata structure
+        try {
+          const decoder = new TextDecoder('ascii');
+          const view = new Uint8Array(pdfBuffer);
+          const text = decoder.decode(view);
+          
+          const countMatches = [...text.matchAll(/\/Count\s+(\d+)/g)];
+          if (countMatches.length > 0) {
+            let maxPages = 1;
+            for (const match of countMatches) {
+              const count = parseInt(match[1], 10);
+              if (count > maxPages && count < 20) {
+                maxPages = count;
+              }
+            }
+            targetPageCount = maxPages;
+          } else {
+            const pageMatches = text.match(/\/Type\s*\/Page\b/g);
+            if (pageMatches && pageMatches.length > 0 && pageMatches.length < 20) {
+              targetPageCount = pageMatches.length;
             }
           }
-          targetPageCount = maxPages;
-        } else {
-          const pageMatches = text.match(/\/Type\s*\/Page\b/g);
-          if (pageMatches && pageMatches.length > 0 && pageMatches.length < 20) {
-            targetPageCount = pageMatches.length;
-          }
+          console.log(`Parsed actual PDF page count from binary metadata: ${targetPageCount}`);
+        } catch (pdfErr) {
+          console.warn("Failed to parse PDF binary page count:", pdfErr);
         }
-        console.log(`Parsed actual PDF page count from binary metadata: ${targetPageCount}`);
-      } catch (pdfErr) {
-        console.warn("Failed to parse PDF binary page count:", pdfErr);
+      } else {
+        // It's an image
+        const imgBuffer = await fileEntry.arrayBuffer();
+        fileBlob = new Blob([imgBuffer], { type: fileType || 'image/jpeg' });
+        targetPageCount = 1; // Default to 1 page target for image uploads
       }
 
       // 5. Call env.AI.toMarkdown with the exact array-of-objects signature
@@ -213,8 +226,8 @@ export default {
       try {
         const conversionResult = await env.AI.toMarkdown([
           {
-            name: fileEntry.name || 'resume.pdf',
-            blob: pdfBlob
+            name: fileEntry.name || (isPdf ? 'resume.pdf' : 'resume.jpg'),
+            blob: fileBlob
           }
         ]);
         resumeMarkdown = conversionResult?.[0]?.data || "";
@@ -225,7 +238,7 @@ export default {
           await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
         }
         return new Response(
-          JSON.stringify({ error: `Failed to extract text from PDF natively: ${convErr.message || convErr}` }),
+          JSON.stringify({ error: `Failed to extract text from file natively: ${convErr.message || convErr}` }),
           {
             status: 422,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -238,8 +251,14 @@ export default {
         if (clientIP !== "anonymous") {
           await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
         }
+        
+        let errorMsg = "Failed to extract legible text from the uploaded file.";
+        if (isPdf) {
+          errorMsg = "The uploaded PDF appears to be a scanned image with no readable text layer. Please upload a standard PDF with selectable text, or upload a PNG/JPEG image of your résumé directly.";
+        }
+        
         return new Response(
-          JSON.stringify({ error: "Failed to extract legible text using native parser." }),
+          JSON.stringify({ error: errorMsg }),
           {
             status: 422,
             headers: { ...corsHeaders, "Content-Type": "application/json" },

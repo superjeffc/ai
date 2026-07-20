@@ -171,13 +171,18 @@ removeFileBtn.addEventListener('click', (e) => {
 
 // Process Selected File
 function handleFileSelect(file) {
-  if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) {
-    alert("Invalid file format. Please upload a PDF document.");
+  const fileType = file.type || '';
+  const name = (file.name || '').toLowerCase();
+  const isPdf = fileType === 'application/pdf' || name.endsWith('.pdf');
+  const isImage = fileType.startsWith('image/') || name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg');
+  
+  if (!isPdf && !isImage) {
+    alert("Invalid file format. Please upload a PDF or a PNG/JPEG image.");
     return;
   }
 
   if (file.size > 5 * 1024 * 1024) {
-    alert("File size exceeds 5MB. Please upload a smaller PDF résumé.");
+    alert("File size exceeds 5MB. Please upload a smaller file.");
     return;
   }
 
@@ -511,7 +516,7 @@ function handleDownloadHtml() {
   const link = document.createElement('a');
   link.href = url;
   
-  const originalName = selectedFile ? selectedFile.name.replace('.pdf', '') : 'résumé';
+  const originalName = selectedFile ? selectedFile.name.replace(/\.(pdf|png|jpe?g)$/i, '') : 'résumé';
   link.setAttribute('download', `${originalName}_optimized.html`);
   link.style.visibility = 'hidden';
   document.body.appendChild(link);
