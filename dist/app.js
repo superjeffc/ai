@@ -438,7 +438,7 @@ function fitToPageTarget(element, targetPages) {
 
 
 
-// Sync link text changes back to their href attributes before downloading
+// Sync link text changes back to their href attributes in real-time or before downloading
 function syncLinksAndGetHtml() {
   const element = document.getElementById('resume-preview-content');
   if (!element) return "";
@@ -447,6 +447,8 @@ function syncLinksAndGetHtml() {
   links.forEach(link => {
     const text = link.textContent.trim();
     if (text) {
+      const href = link.getAttribute('href') || '';
+      
       if (text.startsWith('http://') || text.startsWith('https://')) {
         link.setAttribute('href', text);
       } else if (text.includes('@') && !text.includes('/')) {
@@ -454,11 +456,21 @@ function syncLinksAndGetHtml() {
         link.setAttribute('href', `mailto:${email}`);
       } else if (text.startsWith('www.')) {
         link.setAttribute('href', `https://${text}`);
-      } else if (text.includes('github.com') || text.includes('linkedin.com')) {
-        if (!text.startsWith('http')) {
-          link.setAttribute('href', `https://${text}`);
+      } else {
+        // Use the original href pattern to guide partial username/handle edits
+        if (href.includes('github.com') || text.includes('github.com')) {
+          const username = text.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '').trim();
+          link.setAttribute('href', `https://github.com/${username}`);
+        } else if (href.includes('linkedin.com') || text.includes('linkedin.com')) {
+          const path = text.replace(/^(https?:\/\/)?(www\.)?linkedin\.com\/(in\/)?/i, '').trim();
+          link.setAttribute('href', `https://www.linkedin.com/in/${path}`);
+        } else if (href.startsWith('mailto:') || href.includes('@')) {
+          link.setAttribute('href', `mailto:${text}`);
         } else {
-          link.setAttribute('href', text);
+          // Fallback if it looks like a domain name
+          if (text.includes('.') && !text.includes(' ')) {
+            link.setAttribute('href', `https://${text}`);
+          }
         }
       }
     }
@@ -725,3 +737,10 @@ function updateCounter(count) {
 
 // Call on startup
 fetchStats();
+
+// Sync edited link texts to their actual target href attributes in real-time as the user types
+if (resumePreviewContent) {
+  resumePreviewContent.addEventListener('input', () => {
+    syncLinksAndGetHtml();
+  });
+}
