@@ -567,6 +567,21 @@ function handlePrintPdf() {
   // Sync edits first
   const editedHtml = syncLinksAndGetHtml();
 
+  // Extract candidate name from DOM or filename fallback
+  let candidateName = '';
+  const nameEl = element.querySelector('h1') || element.querySelector('div[style*="font-size: 1.8em"]') || element.querySelector('div[style*="font-size: 1.5em"]');
+  if (nameEl && nameEl.textContent.trim()) {
+    candidateName = nameEl.textContent.trim();
+  } else {
+    candidateName = selectedFile ? selectedFile.name.replace(/\.(pdf|png|jpe?g)$/i, '').replace(/[_-]/g, ' ') : 'Optimized';
+  }
+  // Capitalize name cleanly to Title Case
+  const formattedName = candidateName
+    .split(/\s+/)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+  const documentTitle = `${formattedName} - Résumé`;
+
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
     alert("Please allow popups to download the PDF résumé.");
@@ -578,7 +593,7 @@ function handlePrintPdf() {
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Print Résumé</title>
+  <title>${documentTitle}</title>
   <style id="dynamic-page-style">
     @page {
       size: letter;
