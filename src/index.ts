@@ -380,7 +380,8 @@ export default {
 
       // Calibration: Adjust target page count based on actual text volume to prevent underflow/overflow conflicts
       const charCount = resumeMarkdown.length;
-      if (targetPageCount > 1 && charCount < 3000) {
+      if (targetPageCount > 1 && charCount < 3600) {
+        console.log(`Calibrating targetPageCount down to 1. Character count: ${charCount}`);
         targetPageCount = 1;
       } else if (targetPageCount > 2 && charCount < 6000) {
         targetPageCount = 2;
