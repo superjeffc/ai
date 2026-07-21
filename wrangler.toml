@@ -6,7 +6,8 @@ compatibility_date = "2026-07-15"
 binding = "AI"
 
 routes = [
-  { pattern = "critique.superjeffc.com/api/*", zone_name = "superjeffc.com" }
+  { pattern = "critique.superjeffc.com/api/*", zone_name = "superjeffc.com" },
+  { pattern = "optimize.superjeffc.com/api/*", zone_name = "superjeffc.com" }
 ]
 
 [[kv_namespaces]]
