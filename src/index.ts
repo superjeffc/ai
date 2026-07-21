@@ -94,6 +94,24 @@ function extractJpegsFromPdf(pdfBuffer: ArrayBuffer): Uint8Array[] {
   return jpegs;
 }
 
+// Inspect document markdown structure and count pages that actually contain non-empty text content
+function getNonEmptyPageCount(resumeMarkdown: string): number {
+  const pages = resumeMarkdown.split(/(?:###\s*Page\s+\d+|---\s*PAGE\s+\d+\s*---)/i);
+  if (pages.length <= 1) {
+    return resumeMarkdown.trim().length > 100 ? 1 : 0;
+  }
+  let nonEmptyCount = 0;
+  for (let i = 1; i < pages.length; i++) {
+    const pageText = pages[i].trim();
+    // Strip out markdown formatting and blank spaces to isolate alphanumeric character length
+    const cleaned = pageText.replace(/[#\-\*\s\n\r]/g, "");
+    if (cleaned.length > 50) {
+      nonEmptyCount++;
+    }
+  }
+  return nonEmptyCount > 0 ? nonEmptyCount : 1;
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // Define CORS headers
@@ -328,22 +346,31 @@ export default {
           try {
             const jpegs = extractJpegsFromPdf(pdfBuffer);
             if (jpegs.length > 0) {
-              console.log(`Found ${jpegs.length} scanned JPEG(s) inside PDF. Running Workers AI OCR on the first page...`);
-              const imgBlob = new Blob([jpegs[0]], { type: 'image/jpeg' });
-              const ocrResult = await env.AI.toMarkdown([
-                {
-                  name: 'scanned_page.jpg',
-                  blob: imgBlob
+              console.log(`Found ${jpegs.length} scanned JPEG(s) inside PDF. Running multi-page Workers AI OCR fallback...`);
+              let concatenatedOcr = "";
+              const pagesToOcr = Math.min(jpegs.length, 3);
+              
+              for (let p = 0; p < pagesToOcr; p++) {
+                console.log(`Running Workers AI OCR on page ${p + 1}/${pagesToOcr}...`);
+                const imgBlob = new Blob([jpegs[p]], { type: 'image/jpeg' });
+                const ocrResult = await env.AI.toMarkdown([
+                  {
+                    name: `scanned_page_${p + 1}.jpg`,
+                    blob: imgBlob
+                  }
+                ]);
+                const pageText = ocrResult?.[0]?.data || "";
+                if (pageText && pageText.trim().length > 50) {
+                  concatenatedOcr += `\n\n--- PAGE ${p + 1} ---\n\n` + pageText;
                 }
-              ]);
-              const ocrText = ocrResult?.[0]?.data || "";
+              }
               
               const hasOcrKeywords = resumeKeywords.some(keyword => 
-                ocrText.toLowerCase().includes(keyword)
+                concatenatedOcr.toLowerCase().includes(keyword)
               );
               
-              if (ocrText && ocrText.trim().length >= 150 && hasOcrKeywords) {
-                resumeMarkdown = ocrText;
+              if (concatenatedOcr && concatenatedOcr.trim().length >= 150 && hasOcrKeywords) {
+                resumeMarkdown = concatenatedOcr;
                 hasResumeKeywords = true;
                 ocrSuccess = true;
                 console.log("Scanned PDF OCR fallback succeeded!");
@@ -378,14 +405,14 @@ export default {
         }
       }
 
-      // Calibration: Adjust target page count based on actual text volume to prevent underflow/overflow conflicts
+      // Calibration: Detect empty pages structurally and set target page count based on active content pages
+      const activePages = getNonEmptyPageCount(resumeMarkdown);
+      console.log(`PDF structural page analysis: parsed total pages = ${targetPageCount}, active content pages = ${activePages}`);
+      targetPageCount = activePages;
+
+      // Fallback: If page count was 1 but text volume is extremely large, adjust target up
       const charCount = resumeMarkdown.length;
-      if (targetPageCount > 1 && charCount < 3600) {
-        console.log(`Calibrating targetPageCount down to 1. Character count: ${charCount}`);
-        targetPageCount = 1;
-      } else if (targetPageCount > 2 && charCount < 6000) {
-        targetPageCount = 2;
-      } else if (targetPageCount === 1) {
+      if (targetPageCount === 1) {
         if (charCount > 5800) {
           targetPageCount = 2;
         }
