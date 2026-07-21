@@ -612,6 +612,10 @@ function handlePrintPdf() {
       box-sizing: border-box;
       margin: 0 auto;
     }
+    h1, h2, h3, h4, h5, h6 {
+      page-break-after: avoid !important;
+      break-after: avoid !important;
+    }
     /* Force bullet points and indentation on the resume content */
     ul {
       list-style-type: disc !important;
@@ -624,6 +628,8 @@ function handlePrintPdf() {
       display: list-item !important;
       list-style-type: disc !important;
       margin-bottom: 0.25em !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
     a {
       color: #004b93 !important;
