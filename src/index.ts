@@ -105,7 +105,13 @@ function getNonEmptyPageCount(resumeMarkdown: string): number {
     const pageText = pages[i].trim();
     // Strip out markdown formatting and blank spaces to isolate alphanumeric character length
     const cleaned = pageText.replace(/[#\-\*\s\n\r]/g, "");
-    if (cleaned.length > 50) {
+    
+    // Page 1 is active if it has basic text (> 50 chars). 
+    // Subsequent pages require a substantial content volume (> 150 chars, approx 2 lines) 
+    // to justify a separate page; otherwise, they are treated as spills to be merged.
+    const minChars = (i === 1) ? 50 : 150;
+    
+    if (cleaned.length > minChars) {
       nonEmptyCount++;
     }
   }
