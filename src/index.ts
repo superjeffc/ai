@@ -378,9 +378,13 @@ export default {
         }
       }
 
-      // Fallback: If binary parsing resulted in 1 but the text volume is extremely large, adjust target
-      if (targetPageCount === 1) {
-        const charCount = resumeMarkdown.length;
+      // Calibration: Adjust target page count based on actual text volume to prevent underflow/overflow conflicts
+      const charCount = resumeMarkdown.length;
+      if (targetPageCount > 1 && charCount < 3000) {
+        targetPageCount = 1;
+      } else if (targetPageCount > 2 && charCount < 6000) {
+        targetPageCount = 2;
+      } else if (targetPageCount === 1) {
         if (charCount > 5800) {
           targetPageCount = 2;
         }
