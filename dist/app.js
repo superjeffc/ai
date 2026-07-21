@@ -640,7 +640,8 @@ function handlePrintPdf() {
       const element = document.getElementById('print-content');
       const pageStyle = document.getElementById('dynamic-page-style');
       const targetPages = ${targetPageCount || 1};
-      const maxPageHeight = targetPages * 979; // 10.2 inches printable height at 96 DPI
+      const safetyFactor = targetPages === 1 ? 0.98 : (targetPages === 2 ? 0.90 : 0.88);
+      const maxPageHeight = targetPages * 979 * safetyFactor; // Adjust for browser page-break padding gaps
       
       let low = 0.65;
       let high = 1.30;
