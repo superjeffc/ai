@@ -63,7 +63,7 @@ const loadingMessages = [
   "Structuring education and details...",
   "Reviewing margins and print layout...",
   "Identifying areas for layout improvement...",
-  "Generating recruiter critique...",
+  "Generating hiring manager critique...",
   "Polishing rewritten résumé suggestions...",
   "Running visual layout checks...",
   "Assembling final critique report..."
