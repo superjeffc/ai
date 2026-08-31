@@ -22,9 +22,6 @@ const extractedMeta = document.getElementById('extracted-meta');
 const downloadHtmlTopBtn = document.getElementById('download-html-top-btn');
 const newCritiqueBtn = document.getElementById('new-critique-btn');
 
-// Stats counter DOM elements
-const statsCounter = document.getElementById('stats-counter');
-const counterValue = document.getElementById('counter-value');
 
 // Turnstile widget DOM elements
 const turnstileContainer = document.getElementById('turnstile-container');
@@ -350,10 +347,7 @@ analyzeBtn.addEventListener('click', async () => {
     currentCritiqueMarkdown = critiquePart;
     currentResumeHtml = resumeHtmlPart;
     
-    // Update counter if returned in response
-    if (data && typeof data.count === 'number') {
-      updateCounter(data.count);
-    }
+
     targetPageCount = data.targetPageCount || 1;
     
     // Render Critique Markdown
@@ -712,30 +706,7 @@ if (downloadPdfTopBtn) {
   downloadPdfTopBtn.addEventListener('click', handlePrintPdf);
 }
 
-// Fetch and display stats counter
-async function fetchStats() {
-  try {
-    const response = await fetch(API_URL);
-    if (response.ok) {
-      const data = await response.json();
-      if (data && typeof data.count === 'number') {
-        updateCounter(data.count);
-      }
-    }
-  } catch (err) {
-    console.warn("Failed to fetch stats count:", err);
-  }
-}
 
-function updateCounter(count) {
-  if (counterValue && statsCounter) {
-    counterValue.textContent = count;
-    statsCounter.classList.remove('opacity-0');
-  }
-}
-
-// Call on startup
-fetchStats();
 
 // Sync edited link texts to their actual target href attributes in real-time as the user types
 if (resumePreviewContent) {

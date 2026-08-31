@@ -16,7 +16,6 @@ export interface Env {
   API_SECRET: string;
   CF_CLIENT_ID?: string;
   CF_CLIENT_SECRET?: string;
-  RESUME_CRITIQUE_KV: KVNamespace;
 }
 
 async function callAgyBridge(env: Env, systemPrompt: string, userPrompt: string): Promise<string> {
@@ -136,9 +135,9 @@ export default {
       });
     }
 
-    // Support GET/POST at "/", "/api", "/api/", "/api/stats"
+    // Support POST at "/", "/api", "/api/"
     const url = new URL(request.url);
-    const validPaths = ["/", "/api", "/api/", "/api/stats"];
+    const validPaths = ["/", "/api", "/api/"];
     if (!validPaths.includes(url.pathname)) {
       return new Response(
         JSON.stringify({ error: "Not Found" }),
@@ -149,51 +148,14 @@ export default {
       );
     }
 
-    // Handle stats query
-    if (request.method === "GET") {
-      let countVal = await env.RESUME_CRITIQUE_KV.get("upload_count");
-      let currentCount = countVal ? parseInt(countVal, 10) : 0;
-      return new Response(
-        JSON.stringify({ count: currentCount }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
     if (request.method !== "POST") {
       return new Response(
-        JSON.stringify({ error: `Method Not Allowed. Expected GET or POST, received ${request.method}.` }),
+        JSON.stringify({ error: `Method Not Allowed. Expected POST, received ${request.method}.` }),
         {
           status: 405,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
-    }
-
-    // Extract client IP for rate limiting
-    const clientIP = request.headers.get("CF-Connecting-IP") || "anonymous";
-
-    // 2. Enforce rate limiting: 1 request per minute per IP (Immediate lock)
-    try {
-      const isLimited = await env.RESUME_CRITIQUE_KV.get(`rate_limit:${clientIP}`);
-      if (isLimited) {
-        return new Response(
-          JSON.stringify({ error: "Too Many Requests. You can only evaluate one resume per minute." }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-      
-      // Acquire lock immediately before starting any processing
-      if (clientIP !== "anonymous") {
-        await env.RESUME_CRITIQUE_KV.put(`rate_limit:${clientIP}`, "1", { expirationTtl: 60 });
-      }
-    } catch (kvErr) {
-      console.error("KV rate limit lock error:", kvErr);
     }
 
     try {
@@ -202,10 +164,6 @@ export default {
       const jobDescription = (formData.get("jobDescription") as string || "").trim();
       
       if (jobDescription.length > 10000) {
-        // Clear lock on validation failure
-        if (clientIP !== "anonymous") {
-          await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
-        }
         return new Response(
           JSON.stringify({ error: "Job description exceeds the maximum limit of 10,000 characters." }),
           {
@@ -226,10 +184,6 @@ export default {
       }
 
       if (!fileEntry) {
-        // Clear lock on validation failure
-        if (clientIP !== "anonymous") {
-          await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
-        }
         return new Response(
           JSON.stringify({ error: "No PDF file found in the multipart/form-data payload." }),
           {
@@ -246,10 +200,6 @@ export default {
       const isImage = fileType.startsWith("image/") || fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg");
 
       if (!isPdf && !isImage) {
-        // Clear lock on validation failure
-        if (clientIP !== "anonymous") {
-          await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
-        }
         return new Response(
           JSON.stringify({ error: "Unsupported file format. Please upload a PDF or a PNG/JPEG image." }),
           {
@@ -315,10 +265,6 @@ export default {
         resumeMarkdown = conversionResult?.[0]?.data || "";
       } catch (convErr: any) {
         console.error("Native document conversion error:", convErr);
-        // Clear lock on system failure
-        if (clientIP !== "anonymous") {
-          await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
-        }
         return new Response(
           JSON.stringify({ error: `Failed to extract text from file natively: ${convErr.message || convErr}` }),
           {
@@ -390,11 +336,6 @@ export default {
         if (!ocrSuccess) {
           console.warn(`Validation failed. Legible text length: ${resumeMarkdown ? resumeMarkdown.trim().length : 0} chars. Keywords match: ${hasResumeKeywords}. Warning: ${isParserWarning}.`);
           console.warn(`Extracted preview: "${resumeMarkdown ? resumeMarkdown.substring(0, 150) : ""}"`);
-          
-          // Clear lock on failure
-          if (clientIP !== "anonymous") {
-            await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
-          }
           
           let errorMsg = "Failed to extract legible text from the uploaded file.";
           if (isPdf || isParserWarning || !hasResumeKeywords) {
@@ -506,10 +447,6 @@ export default {
 
       } catch (aiErr: any) {
         console.error("AGY Bridge / Multi-agent execution error:", aiErr);
-        // Clear lock on failure
-        if (clientIP !== "anonymous") {
-          await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
-        }
         return new Response(
           JSON.stringify({ error: `Multi-agent evaluation failed: ${aiErr.message || aiErr}` }),
           {
@@ -520,10 +457,6 @@ export default {
       }
 
       if (!critique) {
-        // Clear lock on failure
-        if (clientIP !== "anonymous") {
-          await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
-        }
         return new Response(
           JSON.stringify({ error: "Empty critique returned from evaluation loop." }),
           {
@@ -533,19 +466,12 @@ export default {
         );
       }
 
-      // 8. Increment the upload counter in KV
-      let countVal = await env.RESUME_CRITIQUE_KV.get("upload_count");
-      let currentCount = countVal ? parseInt(countVal, 10) : 0;
-      currentCount++;
-      await env.RESUME_CRITIQUE_KV.put("upload_count", currentCount.toString());
-
-      // 9. Return the completed critique
+      // Return the completed critique
       return new Response(
         JSON.stringify({
           critique,
           extractedTextLength: resumeMarkdown.length,
-          targetPageCount,
-          count: currentCount
+          targetPageCount
         }),
         {
           status: 200,
@@ -558,10 +484,6 @@ export default {
 
     } catch (error: any) {
       console.error("Unhandled error:", error);
-      // Clear lock on unhandled failure
-      if (clientIP !== "anonymous") {
-        await env.RESUME_CRITIQUE_KV.delete(`rate_limit:${clientIP}`).catch(() => {});
-      }
       return new Response(
         JSON.stringify({ error: error.message || error }),
         {

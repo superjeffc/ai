@@ -24,7 +24,7 @@ Unlike traditional platforms that upload user files to persistent third-party da
   - **Compliance Auditor & Linter Agent (Self-Correction Loop):** Validates generated HTML against strict compliance criteria (bullet point tags `<ul>`/`<li>`, pure black text styling `#000000` with blue links `#004b93`, relative font scaling in `em`, zero hallucination rules). If validation fails, the loop automatically retries up to 3 times with feedback.
 - **Scanned PDF OCR Fallback:** Incorporates a pure JavaScript stream parser to extract raw `/DCTDecode` JPEG bytes from scanned PDFs, passing them through Cloudflare Workers AI for OCR fallback when native text extraction yields empty layers.
 - **Interactive In-Browser Resume Editor:** Generates HTML output with `contenteditable="true"` enabled, allowing users to fine-tune text live in their browser before exporting to PDF.
-- **Edge Rate Limiting & Protection:** Leverages **Cloudflare KV** to enforce IP-based rate limiting (1 request per minute) and maintain atomic global usage counters. Integrated with Cloudflare Turnstile on the frontend to block automated bots.
+- **Bot Protection:** Integrated with Cloudflare Turnstile on the frontend to block automated bots.
 
 ---
 
@@ -39,7 +39,6 @@ flowchart TD
 
     subgraph Edge ["Edge Processing (Cloudflare Workers)"]
         ROUTER["Worker Router & CORS Handler"]
-        KV["Cloudflare KV (Rate Limits & Stats)"]
         INGESTION["In-Memory PDF & Image Parser"]
         OCR_FALLBACK["DCTDecode Stream JPEG OCR Fallback"]
     end
@@ -53,7 +52,6 @@ flowchart TD
     end
 
     UI -->|"POST /api (Multipart Form)"| ROUTER
-    ROUTER -->|"Check Rate Limit"| KV
     ROUTER --> INGESTION
     INGESTION -->|"Empty Text Layer?"| OCR_FALLBACK
     INGESTION -->|"Raw Text + Job Description"| ATS_AGENT
@@ -80,7 +78,6 @@ flowchart TD
 | :--- | :--- |
 | **Runtime & Compute** | Cloudflare Workers (V8 Isolates), TypeScript |
 | **AI & LLM Services** | Cloudflare Workers AI, AGY Remote Execution Bridge |
-| **Edge Storage** | Cloudflare KV (Rate limiting & global analytics) |
 | **Frontend UI** | Cloudflare Pages, HTML5, Tailwind CSS v4, `marked.js` |
 | **PDF Rendering & Processing** | `unpdf` (PDF.js for Edge), `html2pdf.js` |
 | **Security & Utilities** | Cloudflare Turnstile, Cloudflare Access Service Tokens |
@@ -120,28 +117,7 @@ curl -X POST \
 {
   "critique": "# Executive Resume Critique & Synthesis Report\n\n### ATS Alignment & Keyword Match\n...\n\n=== REWRITTEN RESUME ===\n<div contenteditable=\"true\" style=\"...\">...</div>",
   "extractedTextLength": 2840,
-  "targetPageCount": 1,
-  "count": 142
-}
-```
-
----
-
-### 2. Global Evaluation Statistics
-
-**`GET /api/stats`**
-
-Retrieves total number of résumés processed across the platform.
-
-#### Example Request
-```bash
-curl -X GET https://critique.superjeffc.com/api/stats
-```
-
-#### Example Response
-```json
-{
-  "count": 142
+  "targetPageCount": 1
 }
 ```
 
